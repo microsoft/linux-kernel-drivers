@@ -1,0 +1,7 @@
+# Provenance of the verbatim driver under driver/. Records the Linux tree the
+# driver was vendored from; consumed by scripts/gen-version.sh to build the
+# package version <MANA internal>+linux<source>. The MANA internal version is
+# read separately from driver/include/net/mana/mana.h, not from here.
+LINUX_SOURCE_VERSION=7.0.0-rc1
+LINUX_SOURCE_TAG=v7.0-rc1
+LINUX_SOURCE_NAME="(development baseline)"

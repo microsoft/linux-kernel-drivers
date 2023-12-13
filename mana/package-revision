@@ -1,0 +1,32 @@
+# Out-of-tree packaging revision for the mana-compat DKMS module.
+#
+# This is the one version component the OUT-OF-TREE packaging owns outright. The
+# rest of the package version is derived verbatim from upstream sources (the
+# driver's MANA_*_VERSION in driver/include/net/mana/mana.h and the vendored
+# kernel tag in ./source-version), so a change that touches ONLY the compat
+# layer, the glue, or the packaging moves neither and the DKMS/package version
+# would otherwise stay identical. DKMS keys its build tree, its cached .ko and
+# its upgrade decisions on that version, so a same-version "upgrade" silently
+# reuses the previously built module -- the classic stale-driver trap.
+#
+# scripts/gen-version.sh appends this as the trailing "+compat<REV>" segment:
+#
+#     <MANA internal>+linux<source>+compat<REV>   e.g. 0.1.1+linux7.1.0~rc7+compat1
+#
+# It is placed LAST on purpose: the upstream identifiers (the MANA version, then
+# the kernel source) dominate version ordering, and this revision is only the
+# tiebreaker between two packages built from the same upstream base. That keeps a
+# re-vendor to a newer kernel sorting above any revision of an older base, even
+# though MANA's own internal version rarely moves.
+#
+# Bump it (by one is enough) whenever you ship a change that does NOT already
+# move the upstream-derived version: compat/ edits, marked-hunk patches, Kbuild,
+# configure, dkms.conf, the spec/scriptlets, etc. Then run `make set-version`
+# (or `make bump-revision`, which does both) and add the matching debian/ and
+# spec changelog entries.
+#
+# On a true re-vendor the kernel source (and often MANA_*_VERSION) already moves
+# the version, so this may be reset to 1 -- but only when the source version
+# actually changed, or the package version would go backwards. A re-vendor
+# therefore leaves it untouched.
+PACKAGE_REVISION=1
