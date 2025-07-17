@@ -344,10 +344,6 @@ probe MANA_HAVE_NETIF_NAPI_ADD_WEIGHT \
 "netif_napi_add_weight((void *)0, (void *)0, (void *)0, 0);"
 
 # Transitional shims for anchor-era driver APIs (dropped by HEAD reconcile).
-probe MANA_HAVE_NETIF_NAPI_ADD_TX \
-"#include <linux/netdevice.h>" \
-"netif_napi_add_tx((struct net_device *)0, (struct napi_struct *)0, (int (*)(struct napi_struct *, int))0);"
-
 probe MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE \
 "#include <linux/skbuff.h>
 #include <net/ipv6.h>" \

@@ -37,19 +37,6 @@ static inline void netif_napi_add_weight(struct net_device *dev,
 }
 #endif
 
-/* netif_napi_add_tx(): TX-only NAPI-add helper (v5.19). Transitional -- the
- * anchor-era driver body uses it; on < v5.19 delegate to netif_napi_add_weight
- * with NAPI_POLL_WEIGHT. Dropped once the driver reconciles to its final form.
- */
-#if !MANA_HAVE_NETIF_NAPI_ADD_TX
-static inline void netif_napi_add_tx(struct net_device *dev,
-				     struct napi_struct *napi,
-				     int (*poll)(struct napi_struct *, int))
-{
-	netif_napi_add_weight(dev, napi, poll, NAPI_POLL_WEIGHT);
-}
-#endif
-
 /* netdev_hold(): tracked reference acquire (v6.1). Older kernels take a plain
  * refcount; the tracker argument is ignored.
  */

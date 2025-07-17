@@ -12,8 +12,7 @@
 
 /* Transitional anchor-era feature flags (present only across the commits whose
  * driver body still uses these APIs; dropped by the HEAD reconcile). */
-#if !defined(MANA_HAVE_NETIF_NAPI_ADD_TX) || \
-	!defined(MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE)
+#if !defined(MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE)
 #error "mana-compat: incomplete transitional feature map; re-run ./configure"
 #endif
 
