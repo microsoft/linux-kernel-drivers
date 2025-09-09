@@ -44,22 +44,6 @@ static inline void netif_napi_del_locked(struct napi_struct *n)
 	netif_napi_del(n);
 }
 
-/* netdev_lock_ops_to_full()/netdev_unlock_full_to_ops(): transitional helpers
- * present in the driver body from the "Fix potential deadlocks in mana napi
- * ops" change until the tree settled on the final locking model. They move a
- * held ops-lock to the full instance lock and back; on kernels without the
- * per-instance netdev lock there is nothing to transition, so both are no-ops.
- */
-static inline void netdev_lock_ops_to_full(struct net_device *dev)
-{
-	(void)dev;
-}
-
-static inline void netdev_unlock_full_to_ops(struct net_device *dev)
-{
-	(void)dev;
-}
-
 /* netif_napi_add_weight() is normalised by mana_compat_netdev.h, so this
  * resolves correctly even on 5.15 where plain netif_napi_add() still takes the
  * weight as its fourth argument.
