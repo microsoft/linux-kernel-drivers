@@ -23,6 +23,9 @@
 
 struct __mana_ethtool_ops_shim {
 	struct ethtool_ops;
+#if !MANA_HAVE_ETHTOOL_OPS_RX_RING_COUNT	/* kernel field added @v7.0 */
+	u32 (*get_rx_ring_count)(struct net_device *dev);
+#endif
 
 #if !MANA_HAVE_ETHTOOL_RXFH_PARAM
 	int (*__get_rxfh_new)(struct net_device *dev,
