@@ -343,12 +343,6 @@ probe MANA_HAVE_NETIF_NAPI_ADD_WEIGHT \
 #include <linux/netdevice.h>" \
 "netif_napi_add_weight((void *)0, (void *)0, (void *)0, 0);"
 
-# Transitional shims for anchor-era driver APIs (dropped by HEAD reconcile).
-probe MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE \
-"#include <linux/skbuff.h>
-#include <net/ipv6.h>" \
-"int _e = ipv6_hopopt_jumbo_remove((struct sk_buff *)0); (void)_e;"
-
 probe MANA_HAVE_PCI_MSIX_DYN \
 "#include <linux/module.h>
 #include <linux/pci.h>" \

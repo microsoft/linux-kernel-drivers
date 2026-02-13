@@ -114,17 +114,4 @@ static inline bool enable_work(struct work_struct *work)
 }
 #endif
 
-/* ipv6_hopopt_jumbo_remove(): strip the hop-by-hop jumbo option (v6.9).
- * Transitional -- the anchor-era driver body calls it; older kernels never had
- * the jumbogram TX path, so a no-op is correct. Dropped once the driver
- * reconciles to its final form.
- */
-#if !MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE
-static inline int ipv6_hopopt_jumbo_remove(struct sk_buff *skb)
-{
-	(void)skb;
-	return 0;
-}
-#endif
-
 #endif /* MANA_COMPAT_KERNEL_H */

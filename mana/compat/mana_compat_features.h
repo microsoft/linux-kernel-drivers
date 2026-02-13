@@ -10,12 +10,6 @@
 #ifndef MANA_COMPAT_FEATURES_H
 #define MANA_COMPAT_FEATURES_H
 
-/* Transitional anchor-era feature flags (present only across the commits whose
- * driver body still uses these APIs; dropped by the HEAD reconcile). */
-#if !defined(MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE)
-#error "mana-compat: incomplete transitional feature map; re-run ./configure"
-#endif
-
 #if !defined(MANA_COMPAT_AUTOCONF_GENERATED)
 #error "mana-compat: missing generated feature map; build through the top-level Makefile"
 #endif
