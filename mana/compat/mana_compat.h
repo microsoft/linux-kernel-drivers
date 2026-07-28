@@ -30,6 +30,10 @@
  * v6.15 <net/netdev_lock.h> forward-include. */
 #include "mana_compat_netdev.h"
 
+/* Core kernel back-compat: hop_jumbo helpers (v5.19) and
+ * dma_set_max_seg_size return-type (v6.13). */
+#include "mana_compat_kernel.h"
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 

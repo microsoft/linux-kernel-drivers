@@ -23,7 +23,9 @@
 	!defined(MANA_HAVE_PAGE_POOL_FREE_VA) || \
 	!defined(MANA_HAVE_PP_FLAG_PAGE_FRAG) || \
 	!defined(MANA_HAVE_NETIF_NAPI_ADD_WEIGHT) || \
-	!defined(MANA_HAVE_NETIF_NAPI_ADD_TX)
+	!defined(MANA_HAVE_NETIF_NAPI_ADD_TX) || \
+	!defined(MANA_HAVE_IPV6_HAS_HOPOPT_JUMBO) || \
+	!defined(MANA_HAVE_DMA_SET_MAX_SEG_SIZE_VOID)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

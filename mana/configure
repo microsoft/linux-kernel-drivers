@@ -94,6 +94,18 @@ probe MANA_HAVE_NETIF_NAPI_ADD_TX \
 "#include <linux/netdevice.h>" \
 "netif_napi_add_tx((struct net_device *)0, (struct napi_struct *)0, (int (*)(struct napi_struct *, int))0);"
 
+# IPv6 hop-by-hop jumbogram helper (v5.19+). Anchor uses it in mana_start_xmit.
+probe MANA_HAVE_IPV6_HAS_HOPOPT_JUMBO \
+"#include <linux/skbuff.h>
+#include <net/ipv6.h>" \
+"struct sk_buff *_s = (struct sk_buff *)0; ipv6_has_hopopt_jumbo(_s);"
+
+# dma_set_max_seg_size(): returns void from v6.13. Older kernels return int
+# and the anchor driver assigns to err.
+probe MANA_HAVE_DMA_SET_MAX_SEG_SIZE_VOID \
+"#include <linux/dma-mapping.h>" \
+"int _e = 0; _Static_assert(__builtin_types_compatible_p(typeof(dma_set_max_seg_size((struct device *)0, 0)), void), \"void\"); (void)_e;"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"
