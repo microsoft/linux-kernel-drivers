@@ -21,7 +21,9 @@
 	!defined(MANA_HAVE_PAGE_POOL_PARAMS_NAPI) || \
 	!defined(MANA_HAVE_PAGE_POOL_PARAMS_NETDEV) || \
 	!defined(MANA_HAVE_PAGE_POOL_FREE_VA) || \
-	!defined(MANA_HAVE_PP_FLAG_PAGE_FRAG)
+	!defined(MANA_HAVE_PP_FLAG_PAGE_FRAG) || \
+	!defined(MANA_HAVE_NETIF_NAPI_ADD_WEIGHT) || \
+	!defined(MANA_HAVE_NETIF_NAPI_ADD_TX)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

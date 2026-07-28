@@ -146,6 +146,7 @@ the target kernel.
 
 | Flag | First mainline | What it gates |
 |------|------|---------------|
+| `NETIF_NAPI_ADD_WEIGHT`        | 6.1  | `netif_napi_add_weight()` |
 | `PAGE_POOL_HELPERS`            | 6.6  | `net/page_pool/helpers.h` split out |
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
 | `PP_FLAG_PAGE_FRAG`            | ≤6.6 | page-pool fragment opt-in flag (present until removed in 6.7; the wrapper in the helpers.h overlay sets it when `.max_len` is non-zero, so `mana_create_page_pool()` doesn't mention the macro) |

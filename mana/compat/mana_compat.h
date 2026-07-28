@@ -26,6 +26,10 @@
  * every kernel; the backport-include overlay handles the split. */
 #include <net/page_pool/helpers.h>
 
+/* netdev back-compat: netif_napi_add_weight / netif_napi_add_tx bridges and
+ * v6.15 <net/netdev_lock.h> forward-include. */
+#include "mana_compat_netdev.h"
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 
