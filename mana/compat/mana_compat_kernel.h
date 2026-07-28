@@ -60,6 +60,27 @@ static inline int ipv6_has_hopopt_jumbo(const struct sk_buff *skb)
  */
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
+#include <linux/skbuff.h>
+#include <linux/tcp.h>
+
+/*
+ * skb_tcp_all_headers() / skb_inner_tcp_all_headers(): TCP header-sum
+ * helpers added in v5.19 (upstream commit 504148fedb85b). The anchor
+ * driver body calls both from mana_start_xmit to compute GSO segment
+ * sizes. Older kernels (5.15) never gained these helpers; open-code the
+ * pre-v5.19 expression they replaced.
+ */
+#if !MANA_HAVE_SKB_TCP_ALL_HEADERS
+static inline unsigned int skb_tcp_all_headers(const struct sk_buff *skb)
+{
+	return skb_transport_offset(skb) + tcp_hdrlen(skb);
+}
+
+static inline unsigned int skb_inner_tcp_all_headers(const struct sk_buff *skb)
+{
+	return skb_inner_transport_offset(skb) + inner_tcp_hdrlen(skb);
+}
+#endif
 
 /*
  * vcalloc(), vfree(): the anchor driver body calls them from hw_channel.c

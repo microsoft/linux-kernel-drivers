@@ -28,7 +28,8 @@
 	!defined(MANA_HAVE_IPV6_HAS_HOPOPT_JUMBO) || \
 	!defined(MANA_HAVE_DMA_SET_MAX_SEG_SIZE_VOID) || \
 	!defined(MANA_HAVE_XDP_SET_FEATURES_FLAG) || \
-	!defined(MANA_HAVE_BPF_WARN_XDP_3ARG)
+	!defined(MANA_HAVE_BPF_WARN_XDP_3ARG) || \
+	!defined(MANA_HAVE_SKB_TCP_ALL_HEADERS)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 
