@@ -59,6 +59,30 @@ static inline int ipv6_has_hopopt_jumbo(const struct sk_buff *skb)
  * discards the value on v6.13+, forwards it on older kernels.
  */
 #include <linux/dma-mapping.h>
+#include <linux/vmalloc.h>
+
+/*
+ * vcalloc(), vfree(): the anchor driver body calls them from hw_channel.c
+ * without an explicit <linux/vmalloc.h> include, relying on transitive
+ * inclusion via <linux/mm.h> that only holds on kernels < v6.12. Force-
+ * include the header here so the calls resolve on every kernel.
+ */
+
+/*
+ * bpf_warn_invalid_xdp_action(): grew (dev, prog, act) parameters in v6.0
+ * (upstream commit c8064e5b4adac5). Kernels < v6.0 take a single (act)
+ * argument. The anchor driver body calls the 3-arg form from
+ * mana_bpf.c:mana_run_xdp; rewrite to the 1-arg form on old kernels.
+ * <linux/filter.h> is included so the real single-argument prototype is
+ * established before this rewrite; the rewrite is self-referential, so
+ * the inner name resolves to the real function rather than re-expanding.
+ */
+#include <linux/filter.h>
+#if !MANA_HAVE_BPF_WARN_XDP_3ARG
+#define bpf_warn_invalid_xdp_action(dev, prog, act) \
+	bpf_warn_invalid_xdp_action(act)
+#endif
+
 #if MANA_HAVE_DMA_SET_MAX_SEG_SIZE_VOID
 #define dma_set_max_seg_size(dev, size) \
 	({ (dma_set_max_seg_size)((dev), (size)); 0; })

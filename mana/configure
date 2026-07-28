@@ -116,6 +116,11 @@ probe MANA_HAVE_PAGE_POOL_DMA_SYNC_FOR_CPU \
 "#include <net/page_pool/helpers.h>" \
 "page_pool_dma_sync_for_cpu(NULL, (const struct page *)0, 0, 0);"
 
+# bpf_warn_invalid_xdp_action() gained (dev, prog, act) parameters in v6.0.
+probe MANA_HAVE_BPF_WARN_XDP_3ARG \
+"#include <linux/filter.h>" \
+"bpf_warn_invalid_xdp_action((struct net_device *)0, (struct bpf_prog *)0, 0);"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"

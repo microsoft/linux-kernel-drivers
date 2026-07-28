@@ -146,6 +146,7 @@ the target kernel.
 
 | Flag | First mainline | What it gates |
 |------|------|---------------|
+| `BPF_WARN_XDP_3ARG`            | 5.17 | 3-arg `bpf_warn_invalid_xdp_action()` |
 | `NETIF_NAPI_ADD_WEIGHT`        | 6.1  | `netif_napi_add_weight()` |
 | `PAGE_POOL_HELPERS`            | 6.6  | `net/page_pool/helpers.h` split out |
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
