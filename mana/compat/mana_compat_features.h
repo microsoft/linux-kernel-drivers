@@ -16,7 +16,12 @@
 /* No feature requirements at bootstrap. Each later shim commit adds its
  * MANA_HAVE_* here alongside the probe it registers in ../configure. */
 
-#if !defined(MANA_HAVE_EXPORT_SYMBOL_NS_STRING)
+#if !defined(MANA_HAVE_EXPORT_SYMBOL_NS_STRING) || \
+	!defined(MANA_HAVE_PAGE_POOL_HELPERS) || \
+	!defined(MANA_HAVE_PAGE_POOL_PARAMS_NAPI) || \
+	!defined(MANA_HAVE_PAGE_POOL_PARAMS_NETDEV) || \
+	!defined(MANA_HAVE_PAGE_POOL_FREE_VA) || \
+	!defined(MANA_HAVE_PP_FLAG_PAGE_FRAG)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

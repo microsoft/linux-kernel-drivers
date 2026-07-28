@@ -19,6 +19,13 @@
  * EXPORT_SYMBOL_NS(sym, "NET_MANA") whose meaning changes across v6.13. */
 #include "mana_compat_export.h"
 
+/* page_pool overlay: the anchor driver commit uses page_pool_create() etc.
+ * without an explicit #include, relying on transitive inclusion via
+ * <net/xdp.h> that only holds on kernels < v6.6 (before the header split).
+ * Force-including <net/page_pool/helpers.h> here resolves the symbols on
+ * every kernel; the backport-include overlay handles the split. */
+#include <net/page_pool/helpers.h>
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 

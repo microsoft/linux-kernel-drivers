@@ -62,6 +62,28 @@ probe MANA_HAVE_EXPORT_SYMBOL_NS_STRING \
 "#include <linux/module.h>" \
 "EXPORT_SYMBOL_NS(_probe_body, \"NET_MANA\");"
 
+# page_pool: helpers.h split (v6.6), field additions (napi @6.6, netdev @6.12),
+# PP_FLAG_PAGE_FRAG removal (@6.7), page_pool_free_va (@6.12).
+probe MANA_HAVE_PAGE_POOL_HELPERS \
+"#include <net/page_pool/helpers.h>" \
+"page_pool_recycle_direct(NULL, NULL);"
+
+probe MANA_HAVE_PAGE_POOL_PARAMS_NAPI \
+"#include <net/page_pool/types.h>" \
+"struct page_pool_params _p; _p.napi = (struct napi_struct *)0; (void)_p;"
+
+probe MANA_HAVE_PAGE_POOL_PARAMS_NETDEV \
+"#include <net/page_pool/types.h>" \
+"struct page_pool_params _p; _p.netdev = (struct net_device *)0; (void)_p;"
+
+probe MANA_HAVE_PAGE_POOL_FREE_VA \
+"#include <net/page_pool/helpers.h>" \
+"page_pool_free_va(NULL, (void *)0, false);"
+
+probe MANA_HAVE_PP_FLAG_PAGE_FRAG \
+"#include <net/page_pool/types.h>" \
+"unsigned int _f = PP_FLAG_PAGE_FRAG; (void)_f;"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"

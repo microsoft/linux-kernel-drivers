@@ -146,6 +146,11 @@ the target kernel.
 
 | Flag | First mainline | What it gates |
 |------|------|---------------|
+| `PAGE_POOL_HELPERS`            | 6.6  | `net/page_pool/helpers.h` split out |
+| `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
+| `PP_FLAG_PAGE_FRAG`            | ≤6.6 | page-pool fragment opt-in flag (present until removed in 6.7; the wrapper in the helpers.h overlay sets it when `.max_len` is non-zero, so `mana_create_page_pool()` doesn't mention the macro) |
+| `PAGE_POOL_PARAMS_NETDEV`      | 6.12 | `page_pool_params.netdev`/`.queue_idx` (fed via the helpers.h overlay shim) |
+| `PAGE_POOL_FREE_VA`            | 6.12 | `page_pool_free_va()` |
 | `EXPORT_SYMBOL_NS_STRING`      | 6.13 | string-literal namespace form |
 
 `configure` and `mana_compat_features.h` carry the same set of feature flags and
