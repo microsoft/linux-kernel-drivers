@@ -147,7 +147,9 @@ the target kernel.
 | Flag | First mainline | What it gates |
 |------|------|---------------|
 | `BPF_WARN_XDP_3ARG`            | 5.17 | 3-arg `bpf_warn_invalid_xdp_action()` |
+| `NETIF_SET_TSO_MAX_SIZE`       | 5.19 | `netif_set_tso_max_size()` |
 | `NETIF_NAPI_ADD_WEIGHT`        | 6.1  | `netif_napi_add_weight()` |
+| `NETDEV_HOLD`                  | 6.1  | `netdev_hold()` + `netdevice_tracker` |
 | `SKB_TCP_ALL_HEADERS`          | 6.1  | `skb_tcp_all_headers()` |
 | `PAGE_POOL_HELPERS`            | 6.6  | `net/page_pool/helpers.h` split out |
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |

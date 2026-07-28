@@ -94,6 +94,16 @@ probe MANA_HAVE_NETIF_NAPI_ADD_TX \
 "#include <linux/netdevice.h>" \
 "netif_napi_add_tx((struct net_device *)0, (struct napi_struct *)0, (int (*)(struct napi_struct *, int))0);"
 
+# netif_set_tso_max_size(): TSO/GSO cap (v5.19+).
+probe MANA_HAVE_NETIF_SET_TSO_MAX_SIZE \
+"#include <linux/netdevice.h>" \
+"netif_set_tso_max_size((struct net_device *)0, 0);"
+
+# netdev_hold(): tracker-aware refcount acquire (v6.1+).
+probe MANA_HAVE_NETDEV_HOLD \
+"#include <linux/netdevice.h>" \
+"netdev_hold((struct net_device *)0, (netdevice_tracker *)0, GFP_KERNEL);"
+
 # IPv6 hop-by-hop jumbogram helper (v5.19+). Anchor uses it in mana_start_xmit.
 probe MANA_HAVE_IPV6_HAS_HOPOPT_JUMBO \
 "#include <linux/skbuff.h>

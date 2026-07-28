@@ -46,4 +46,34 @@ static inline void netif_napi_add_tx(struct net_device *dev,
 }
 #endif
 
+/* netif_set_tso_max_size(): cap the TSO/GSO size (v5.19+). Older kernels
+ * expose the same cap as netif_set_gso_max_size. */
+#if !MANA_HAVE_NETIF_SET_TSO_MAX_SIZE
+static inline void netif_set_tso_max_size(struct net_device *dev,
+					  unsigned int size)
+{
+	netif_set_gso_max_size(dev, size);
+}
+#endif
+
+
+/* netdevice_tracker: reference tracker type from <net/net_trackers.h> (v5.17,
+ * pulled in by <linux/netdevice.h> when present). Detect via that header's own
+ * include guard so we only fill the gap on kernels that predate it. */
+#ifndef __NET_NET_TRACKERS_H
+typedef struct {} netdevice_tracker;
+#endif
+
+/* netdev_hold(): tracked reference acquire (v6.1+). Older kernels take a
+ * plain refcount; the tracker argument is ignored. */
+#if !MANA_HAVE_NETDEV_HOLD
+static inline void netdev_hold(struct net_device *dev,
+			       netdevice_tracker *tracker, gfp_t gfp)
+{
+	(void)tracker;
+	(void)gfp;
+	dev_hold(dev);
+}
+#endif
+
 #endif /* MANA_COMPAT_NETDEV_H */
