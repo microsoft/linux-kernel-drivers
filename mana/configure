@@ -111,6 +111,11 @@ probe MANA_HAVE_XDP_SET_FEATURES_FLAG \
 "#include <net/xdp.h>" \
 "xdp_set_features_flag((struct net_device *)0, 0);"
 
+# page_pool_dma_sync_for_cpu(): added in v6.11.
+probe MANA_HAVE_PAGE_POOL_DMA_SYNC_FOR_CPU \
+"#include <net/page_pool/helpers.h>" \
+"page_pool_dma_sync_for_cpu(NULL, (const struct page *)0, 0, 0);"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"

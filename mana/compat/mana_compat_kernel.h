@@ -9,6 +9,25 @@
 #include <linux/skbuff.h>
 
 /*
+ * __counted_by(): compiler attribute annotating a flexible-array-member's
+ * count field (Clang / GCC support added Clang 15 / GCC 14; kernel adoption
+ * v6.6). Purely diagnostic; safe to erase on kernels/toolchains that don't
+ * know it.
+ */
+#ifndef __counted_by
+#define __counted_by(m)
+#endif
+
+/*
+ * PCI_VENDOR_ID_MICROSOFT: added to <linux/pci_ids.h> in v6.1 (upstream
+ * commit 1c4f643e92af). Backfill on older kernels so the driver's static
+ * PCI ID table compiles.
+ */
+#ifndef PCI_VENDOR_ID_MICROSOFT
+#define PCI_VENDOR_ID_MICROSOFT		0x1414
+#endif
+
+/*
  * struct hop_jumbo_hdr / ipv6_has_hopopt_jumbo(): both landed in v5.19
  * (upstream commit d20df70cd12b, "ipv6: net: Add ipv6_has_hopopt_jumbo()"
  * plus the header-inline structure). Anchor driver uses these in
