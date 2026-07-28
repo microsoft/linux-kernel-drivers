@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Kbuild for the out-of-tree MANA module. Every build MUST enter through the
+# top-level Makefile so ./configure runs first and MANA_COMPAT_PROBED=1 is set.
+#
+# Driver .c file set is wildcard-derived so this file survives every step of
+# upstream history without editing -- files that don't exist yet at a given
+# bisect state are simply not compiled at that state.
+
+ifneq ($(MANA_COMPAT_PROBED),1)
+$(error mana-compat: invoke the top-level Makefile so the target kernel is re-probed)
+endif
+
+NOSTDINC_FLAGS += -I$(src)/compat/backport-include
+NOSTDINC_FLAGS += -I$(src)/driver/include
+
+ccflags-y += -I$(src)/compat
+ccflags-y += -include $(src)/compat/mana_compat.h
+
+# -fplan9-extensions: enables anonymous embedding of named struct types and
+# implicit pointer conversion. Used later by wrapper-TU and header overlays.
+ccflags-y += -fplan9-extensions
+
+# Bump pre-5.18 kernels to gnu11: the verbatim driver body uses C99 for-loop
+# initial declarations and older kernels force gnu89.
+mana_kver_lt_518 := $(shell { [ $(VERSION) -lt 5 ] || { [ $(VERSION) -eq 5 ] && [ $(PATCHLEVEL) -lt 18 ]; }; } && echo y)
+ifeq ($(mana_kver_lt_518),y)
+ccflags-y += -std=gnu11
+endif
+
+obj-m += mana-compat.o
+mana-driver-objs := $(patsubst $(src)/%.c,%.o,$(wildcard $(src)/driver/*.c))
+mana-compat-objs := $(mana-driver-objs)
