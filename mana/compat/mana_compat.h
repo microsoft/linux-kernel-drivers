@@ -34,6 +34,10 @@
  * dma_set_max_seg_size return-type (v6.13). */
 #include "mana_compat_kernel.h"
 
+/* XDP back-compat: xdp_set_features_flag() + NETDEV_XDP_ACT_* on kernels
+ * < v6.3. */
+#include "mana_compat_xdp.h"
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 
