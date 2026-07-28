@@ -146,6 +146,7 @@ the target kernel.
 
 | Flag | First mainline | What it gates |
 |------|------|---------------|
+| `EXPORT_SYMBOL_NS_STRING`      | 6.13 | string-literal namespace form |
 
 `configure` and `mana_compat_features.h` carry the same set of feature flags and
 must stay in lockstep.

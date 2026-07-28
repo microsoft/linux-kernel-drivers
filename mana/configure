@@ -58,6 +58,9 @@ EOF
 } > "$OUT"
 
 # No probes yet at bootstrap. Future commits append probe() calls here.
+probe MANA_HAVE_EXPORT_SYMBOL_NS_STRING \
+"#include <linux/module.h>" \
+"EXPORT_SYMBOL_NS(_probe_body, \"NET_MANA\");"
 
 {
     echo ""

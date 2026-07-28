@@ -15,6 +15,10 @@
 #include "autogen/mana_compat_autoconf.h"
 #include "mana_compat_features.h"
 
+/* Symbol export suppression: the driver exports symbols with
+ * EXPORT_SYMBOL_NS(sym, "NET_MANA") whose meaning changes across v6.13. */
+#include "mana_compat_export.h"
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 
