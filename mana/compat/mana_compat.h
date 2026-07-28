@@ -38,6 +38,15 @@
  * < v6.3. */
 #include "mana_compat_xdp.h"
 
+/* ethtool wrapper TU + register_netdev interceptor: adapts the driver's
+ * ops-table to kernel-version-varying signatures. Renames register_netdev
+ * to our interceptor. */
+#include "mana_compat_ethtool_ops.h"
+
+/* Force-include the ethtool interceptor rename BEFORE the driver body's
+ * register_netdev call resolves. */
+#define register_netdev mana_compat_register_netdev
+
 /* Additional shim headers appended here by future commits, each just before
  * the driver commit that consumes it. */
 

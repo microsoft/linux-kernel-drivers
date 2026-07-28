@@ -30,4 +30,8 @@ endif
 
 obj-m += mana-compat.o
 mana-driver-objs := $(patsubst $(src)/%.c,%.o,$(wildcard $(src)/driver/*.c))
-mana-compat-objs := $(mana-driver-objs)
+# mana_ethtool.o is subsumed by the wrapper TU (compat/mana_compat_ethtool_wrapper.o).
+mana-driver-objs := $(filter-out driver/mana_ethtool.o,$(mana-driver-objs))
+mana-compat-objs := $(mana-driver-objs) \
+	compat/mana_compat_ethtool_wrapper.o \
+	compat/mana_compat_ethtool_ops.o

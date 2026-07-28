@@ -127,6 +127,11 @@ probe MANA_HAVE_SKB_TCP_ALL_HEADERS \
 #include <linux/tcp.h>" \
 "unsigned int _n = skb_tcp_all_headers((struct sk_buff *)0); (void)_n;"
 
+# struct ethtool_rxfh_param: get/set_rxfh argument bundle added in v6.8.
+probe MANA_HAVE_ETHTOOL_RXFH_PARAM \
+"#include <linux/ethtool.h>" \
+"struct ethtool_rxfh_param _p; (void)_p;"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"
