@@ -43,6 +43,12 @@
  * to our interceptor. */
 #include "mana_compat_ethtool_ops.h"
 
+/* cleanup + cpumask back-compat (needed as later driver commits adopt
+ * __free() attribute-based cleanup at v6.4 and cpumask_weight_andnot at
+ * v6.3). */
+#include "mana_compat_cleanup.h"
+#include "mana_compat_cpumask.h"
+
 /* Force-include the ethtool interceptor rename BEFORE the driver body's
  * register_netdev call resolves. */
 #define register_netdev mana_compat_register_netdev

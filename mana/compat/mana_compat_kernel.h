@@ -62,6 +62,21 @@ static inline int ipv6_has_hopopt_jumbo(const struct sk_buff *skb)
 #include <linux/vmalloc.h>
 #include <linux/skbuff.h>
 #include <linux/tcp.h>
+#include <linux/cpu.h>
+
+/*
+ * for_each_numa_hop_mask(): iterate CPU masks by NUMA hop distance. Added
+ * in v6.2 (upstream commit cc9f4f8b7b52). Anchor+later driver code uses
+ * this in gdma_main.c irq_setup for NUMA-aware IRQ distribution. Older
+ * kernels (5.15, 6.1) lack it; fall back to a single-hop iteration that
+ * degenerates to cpu_online_mask.
+ */
+#if !MANA_HAVE_FOR_EACH_NUMA_HOP_MASK
+#define for_each_numa_hop_mask(mask, node)			\
+	for ((mask) = cpu_online_mask, node = -1;		\
+	     (mask);						\
+	     (mask) = NULL)
+#endif
 
 /*
  * skb_tcp_all_headers() / skb_inner_tcp_all_headers(): TCP header-sum

@@ -132,6 +132,28 @@ probe MANA_HAVE_ETHTOOL_RXFH_PARAM \
 "#include <linux/ethtool.h>" \
 "struct ethtool_rxfh_param _p; (void)_p;"
 
+# <linux/cleanup.h> and its __free / DEFINE_FREE macros (v6.4+).
+probe MANA_HAVE_LINUX_CLEANUP_H \
+"#include <linux/cleanup.h>" \
+"int _v = 0; (void)_v;"
+
+# DEFINE_FREE(free_cpumask_var) registration added to <linux/cpumask.h> in
+# v6.7. Older kernels with cleanup.h (6.4-6.6) need us to register it.
+probe MANA_HAVE_DEFINE_FREE_FREE_CPUMASK_VAR \
+"#include <linux/cleanup.h>
+#include <linux/cpumask.h>" \
+"cpumask_var_t v __free(free_cpumask_var); (void)v;"
+
+# cpumask_weight_andnot() introduced in v6.3.
+probe MANA_HAVE_CPUMASK_WEIGHT_ANDNOT \
+"#include <linux/cpumask.h>" \
+"const struct cpumask *_a = NULL, *_b = NULL; unsigned int _n = cpumask_weight_andnot(_a, _b); (void)_n;"
+
+# for_each_numa_hop_mask(): NUMA-aware CPU mask iteration (v6.2+).
+probe MANA_HAVE_FOR_EACH_NUMA_HOP_MASK \
+"#include <linux/topology.h>" \
+"const struct cpumask *m; int node; for_each_numa_hop_mask(m, node) { (void)m; }"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"

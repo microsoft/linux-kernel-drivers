@@ -30,7 +30,11 @@
 	!defined(MANA_HAVE_XDP_SET_FEATURES_FLAG) || \
 	!defined(MANA_HAVE_BPF_WARN_XDP_3ARG) || \
 	!defined(MANA_HAVE_SKB_TCP_ALL_HEADERS) || \
-	!defined(MANA_HAVE_ETHTOOL_RXFH_PARAM)
+	!defined(MANA_HAVE_ETHTOOL_RXFH_PARAM) || \
+	!defined(MANA_HAVE_LINUX_CLEANUP_H) || \
+	!defined(MANA_HAVE_DEFINE_FREE_FREE_CPUMASK_VAR) || \
+	!defined(MANA_HAVE_CPUMASK_WEIGHT_ANDNOT) || \
+	!defined(MANA_HAVE_FOR_EACH_NUMA_HOP_MASK)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

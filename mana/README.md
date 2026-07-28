@@ -153,6 +153,7 @@ the target kernel.
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
 | `PP_FLAG_PAGE_FRAG`            | ≤6.6 | page-pool fragment opt-in flag (present until removed in 6.7; the wrapper in the helpers.h overlay sets it when `.max_len` is non-zero, so `mana_create_page_pool()` doesn't mention the macro) |
 | `ETHTOOL_RXFH_PARAM`           | 6.8  | `get_rxfh`/`set_rxfh` take `ethtool_rxfh_param` |
+| `CPUMASK_WEIGHT_ANDNOT`        | 6.9  | `cpumask_weight_andnot()` |
 | `PAGE_POOL_PARAMS_NETDEV`      | 6.12 | `page_pool_params.netdev`/`.queue_idx` (fed via the helpers.h overlay shim) |
 | `PAGE_POOL_FREE_VA`            | 6.12 | `page_pool_free_va()` |
 | `EXPORT_SYMBOL_NS_STRING`      | 6.13 | string-literal namespace form |
