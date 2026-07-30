@@ -20,6 +20,15 @@
  * `struct ethtool_ops mana_ethtool_ops` definition lands in the shim type. */
 #define ethtool_ops __mana_ethtool_ops_shim
 
+/* Rename struct kernel_ethtool_coalesce to our shim (adds .rx_cqe_frames) so
+ * the verbatim body compiles on <v7.1, and define the missing supported-param
+ * macro to 0. Kernel-side only; the driver-coupled coalesce bridge is added by
+ * a later commit once mana_{get,set}_coalesce exist. */
+#if !MANA_HAVE_ETHTOOL_COALESCE_RX_CQE_FRAMES
+#define kernel_ethtool_coalesce __mana_kernel_ethtool_coalesce_shim
+#define ETHTOOL_COALESCE_RX_CQE_FRAMES 0
+#endif
+
 /* Rename the .get_rxfh / .set_rxfh field designators to trailing shim slots on
  * kernels where the kernel-visible sig differs from the driver's NEW sig. */
 #if !MANA_HAVE_ETHTOOL_RXFH_PARAM
@@ -32,6 +41,14 @@
 #if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
 #define get_ringparam __get_ringparam_new
 #define set_ringparam __set_ringparam_new
+#endif
+
+/* Divert the driver's shim-typed .get_coalesce/.set_coalesce designators to the
+ * trailing shim slots so the NEW-sig assignment type-checks; the kernel-visible
+ * slots stay NULL until the later bridge commit installs real-typed adapters. */
+#if !MANA_HAVE_ETHTOOL_COALESCE_RX_CQE_FRAMES
+#define get_coalesce __get_coalesce_new
+#define set_coalesce __set_coalesce_new
 #endif
 
 /* mana.h must see the same renamed types the driver body will use. */
