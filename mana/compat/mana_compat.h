@@ -49,6 +49,10 @@
 #include "mana_compat_cleanup.h"
 #include "mana_compat_cpumask.h"
 
+/* PCI back-compat: dynamic MSI-X allocation (v6.2+) — pci_msix_can_alloc_dyn,
+ * pci_msix_alloc_irq_at, pci_msix_free_irq stubs on older kernels. */
+#include "mana_compat_pci.h"
+
 /* Force-include the ethtool interceptor rename BEFORE the driver body's
  * register_netdev call resolves. */
 #define register_netdev mana_compat_register_netdev
