@@ -70,3 +70,19 @@ int mana_compat_set_rxfh_old(struct net_device *ndev, const u32 *indir,
 	return mana_set_rxfh(ndev, &rxfh, NULL);
 }
 #endif
+
+/* --- OLD-sig ringparam adapters ---------------------------------------- */
+
+#if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
+void mana_compat_get_ringparam_old(struct net_device *ndev,
+				   struct ethtool_ringparam *ring)
+{
+	mana_get_ringparam(ndev, ring, NULL, NULL);
+}
+
+int mana_compat_set_ringparam_old(struct net_device *ndev,
+				  struct ethtool_ringparam *ring)
+{
+	return mana_set_ringparam(ndev, ring, NULL, NULL);
+}
+#endif

@@ -51,6 +51,11 @@ int mana_compat_register_netdev(struct net_device *ndev)
 	staged.set_rxfh = mana_compat_set_rxfh_old;
 #endif
 
+#if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
+	staged.get_ringparam = mana_compat_get_ringparam_old;
+	staged.set_ringparam = mana_compat_set_ringparam_old;
+#endif
+
 	mana_compat_shadow_ops = staged;
 	ndev->ethtool_ops = &mana_compat_shadow_ops;
 
