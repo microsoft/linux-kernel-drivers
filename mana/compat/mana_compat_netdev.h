@@ -23,6 +23,14 @@
 # endif
 #endif
 
+/* netdevice_tracker: reference tracker type from <net/net_trackers.h> (v5.17,
+ * pulled in by <linux/netdevice.h> when present). Detect via that header's
+ * include guard so we only fill the gap on kernels that predate it. The
+ * empty struct matches the !CONFIG_NET_DEV_REFCNT_TRACKER form. */
+#ifndef __NET_NET_TRACKERS_H
+typedef struct {} netdevice_tracker;
+#endif
+
 /* netif_napi_add_weight(): weighted NAPI-add. On < v5.19, weight is the 4th
  * arg of netif_napi_add() itself. */
 #if !MANA_HAVE_NETIF_NAPI_ADD_WEIGHT
@@ -56,13 +64,6 @@ static inline void netif_set_tso_max_size(struct net_device *dev,
 }
 #endif
 
-
-/* netdevice_tracker: reference tracker type from <net/net_trackers.h> (v5.17,
- * pulled in by <linux/netdevice.h> when present). Detect via that header's own
- * include guard so we only fill the gap on kernels that predate it. */
-#ifndef __NET_NET_TRACKERS_H
-typedef struct {} netdevice_tracker;
-#endif
 
 /* netdev_hold(): tracked reference acquire (v6.1+). Older kernels take a
  * plain refcount; the tracker argument is ignored. */

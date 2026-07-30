@@ -164,6 +164,27 @@ probe MANA_HAVE_FOR_EACH_NUMA_HOP_MASK \
 "#include <linux/topology.h>" \
 "const struct cpumask *m; int node; for_each_numa_hop_mask(m, node) { (void)m; }"
 
+# struct kernel_ethtool_ringparam introduced in v5.16.
+probe MANA_HAVE_ETHTOOL_RINGPARAM_EXT \
+"#include <linux/ethtool.h>" \
+"struct kernel_ethtool_ringparam _r; (void)_r;"
+
+# NL_SET_ERR_MSG_FMT(): netlink error-format helper (v6.0+).
+probe MANA_HAVE_NL_SET_ERR_MSG_FMT \
+"#include <linux/netlink.h>" \
+"NL_SET_ERR_MSG_FMT((struct netlink_ext_ack *)0, \"%s\", \"x\");"
+
+# ethtool_puts(): string-append helper (v6.8+).
+probe MANA_HAVE_ETHTOOL_PUTS \
+"#include <linux/ethtool.h>" \
+"u8 *_p = NULL; ethtool_puts(&_p, \"x\");"
+
+# ipv6_hopopt_jumbo_remove(): strips hop-by-hop jumbo option (v6.9+).
+probe MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE \
+"#include <linux/skbuff.h>
+#include <net/ipv6.h>" \
+"int _e = ipv6_hopopt_jumbo_remove((struct sk_buff *)0); (void)_e;"
+
 {
     echo ""
     echo "#endif /* MANA_COMPAT_AUTOCONF_H */"

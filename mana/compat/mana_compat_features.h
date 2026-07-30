@@ -36,7 +36,11 @@
 	!defined(MANA_HAVE_LINUX_CLEANUP_H) || \
 	!defined(MANA_HAVE_DEFINE_FREE_FREE_CPUMASK_VAR) || \
 	!defined(MANA_HAVE_CPUMASK_WEIGHT_ANDNOT) || \
-	!defined(MANA_HAVE_FOR_EACH_NUMA_HOP_MASK)
+	!defined(MANA_HAVE_FOR_EACH_NUMA_HOP_MASK) || \
+	!defined(MANA_HAVE_ETHTOOL_RINGPARAM_EXT) || \
+	!defined(MANA_HAVE_NL_SET_ERR_MSG_FMT) || \
+	!defined(MANA_HAVE_ETHTOOL_PUTS) || \
+	!defined(MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

@@ -146,6 +146,7 @@ the target kernel.
 
 | Flag | First mainline | What it gates |
 |------|------|---------------|
+| `ETHTOOL_RINGPARAM_EXT`        | 5.16 | `get/set_ringparam` take `kernel_ethtool_ringparam`+extack |
 | `BPF_WARN_XDP_3ARG`            | 5.17 | 3-arg `bpf_warn_invalid_xdp_action()` |
 | `NETIF_SET_TSO_MAX_SIZE`       | 5.19 | `netif_set_tso_max_size()` |
 | `NETIF_NAPI_ADD_WEIGHT`        | 6.1  | `netif_napi_add_weight()` |
@@ -155,6 +156,7 @@ the target kernel.
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
 | `PP_FLAG_PAGE_FRAG`            | ≤6.6 | page-pool fragment opt-in flag (present until removed in 6.7; the wrapper in the helpers.h overlay sets it when `.max_len` is non-zero, so `mana_create_page_pool()` doesn't mention the macro) |
 | `ETHTOOL_RXFH_PARAM`           | 6.8  | `get_rxfh`/`set_rxfh` take `ethtool_rxfh_param` |
+| `ETHTOOL_PUTS`                 | 6.8  | `ethtool_puts()` |
 | `CPUMASK_WEIGHT_ANDNOT`        | 6.9  | `cpumask_weight_andnot()` |
 | `PAGE_POOL_PARAMS_NETDEV`      | 6.12 | `page_pool_params.netdev`/`.queue_idx` (fed via the helpers.h overlay shim) |
 | `PAGE_POOL_FREE_VA`            | 6.12 | `page_pool_free_va()` |

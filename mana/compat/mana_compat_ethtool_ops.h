@@ -23,4 +23,11 @@ int mana_compat_set_rxfh_old(struct net_device *ndev,
 			     const u32 *indir, const u8 *key, const u8 hfunc);
 #endif
 
+#if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
+void mana_compat_get_ringparam_old(struct net_device *ndev,
+				   struct ethtool_ringparam *ring);
+int mana_compat_set_ringparam_old(struct net_device *ndev,
+				  struct ethtool_ringparam *ring);
+#endif
+
 #endif /* MANA_COMPAT_ETHTOOL_OPS_H */

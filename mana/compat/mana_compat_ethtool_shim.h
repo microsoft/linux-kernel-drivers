@@ -31,6 +31,18 @@ struct __mana_ethtool_ops_shim {
 			      struct ethtool_rxfh_param *rxfh,
 			      struct netlink_ext_ack *extack);
 #endif
+
+#if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
+	/* Typing anchor slots for the extended (v5.16+) ringparam ops. */
+	void (*__get_ringparam_new)(struct net_device *dev,
+				    struct ethtool_ringparam *ring,
+				    struct kernel_ethtool_ringparam *kring,
+				    struct netlink_ext_ack *extack);
+	int (*__set_ringparam_new)(struct net_device *dev,
+				   struct ethtool_ringparam *ring,
+				   struct kernel_ethtool_ringparam *kring,
+				   struct netlink_ext_ack *extack);
+#endif
 };
 
 #endif /* MANA_COMPAT_ETHTOOL_SHIM_H */

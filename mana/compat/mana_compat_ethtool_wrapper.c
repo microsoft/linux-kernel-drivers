@@ -27,6 +27,13 @@
 #define set_rxfh __set_rxfh_new
 #endif
 
+/* Same for ringparam: rename designators when the driver's NEW-sig ops
+ * assignment does not match the kernel's field type. */
+#if !MANA_HAVE_ETHTOOL_RINGPARAM_EXT
+#define get_ringparam __get_ringparam_new
+#define set_ringparam __set_ringparam_new
+#endif
+
 /* mana.h must see the same renamed types the driver body will use. */
 #include <net/mana/mana.h>
 

@@ -65,6 +65,20 @@ static inline int ipv6_has_hopopt_jumbo(const struct sk_buff *skb)
 #include <linux/cpu.h>
 
 /*
+ * ipv6_hopopt_jumbo_remove(): remove hop-by-hop jumbo option from an skb
+ * (v6.9+). Fallback to a no-op — the anchor+later driver body uses this to
+ * strip the option before an on-wire pass; older kernels never had the
+ * jumbogram TX offload path anyway.
+ */
+#if !MANA_HAVE_IPV6_HOPOPT_JUMBO_REMOVE
+static inline int ipv6_hopopt_jumbo_remove(struct sk_buff *skb)
+{
+	(void)skb;
+	return 0;
+}
+#endif
+
+/*
  * for_each_numa_hop_mask(): iterate CPU masks by NUMA hop distance. Added
  * in v6.2 (upstream commit cc9f4f8b7b52). Anchor+later driver code uses
  * this in gdma_main.c irq_setup for NUMA-aware IRQ distribution. Older
