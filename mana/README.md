@@ -153,15 +153,22 @@ the target kernel.
 | `NETDEV_HOLD`                  | 6.1  | `netdev_hold()` + `netdevice_tracker` |
 | `SKB_TCP_ALL_HEADERS`          | 6.1  | `skb_tcp_all_headers()` |
 | `PCI_MSIX_DYN`                 | 6.2  | dynamic MSI-X (`pci_msix_can_alloc_dyn`) |
+| `XDP_FEATURES`                 | 6.3  | `xdp_set_features_flag()` + `NETDEV_XDP_ACT_*` |
 | `PAGE_POOL_HELPERS`            | 6.6  | `net/page_pool/helpers.h` split out |
 | `PAGE_POOL_PARAMS_NAPI`        | 6.6  | `page_pool_params.napi` (fed via the helpers.h overlay shim) |
 | `PP_FLAG_PAGE_FRAG`            | ≤6.6 | page-pool fragment opt-in flag (present until removed in 6.7; the wrapper in the helpers.h overlay sets it when `.max_len` is non-zero, so `mana_create_page_pool()` doesn't mention the macro) |
 | `ETHTOOL_RXFH_PARAM`           | 6.8  | `get_rxfh`/`set_rxfh` take `ethtool_rxfh_param` |
 | `ETHTOOL_PUTS`                 | 6.8  | `ethtool_puts()` |
 | `CPUMASK_WEIGHT_ANDNOT`        | 6.9  | `cpumask_weight_andnot()` |
+| `DISABLE_WORK_SYNC`            | 6.10 | `disable_work_sync()` family |
 | `PAGE_POOL_PARAMS_NETDEV`      | 6.12 | `page_pool_params.netdev`/`.queue_idx` (fed via the helpers.h overlay shim) |
 | `PAGE_POOL_FREE_VA`            | 6.12 | `page_pool_free_va()` |
+| `CPUMASK_VAR_CLEANUP`          | 6.12 | `DEFINE_FREE(free_cpumask_var)` cleanup class |
 | `EXPORT_SYMBOL_NS_STRING`      | 6.13 | string-literal namespace form |
+| `NET_SHAPER`                   | 6.13 | `net_device_ops.net_shaper_ops` + `net/net_shaper.h` |
+| `NETDEV_LOCK`                  | 6.15 | `net/netdev_lock.h` `*_locked()` NAPI family |
+| `ETHTOOL_OPS_RX_RING_COUNT`    | 7.0  | `ethtool_ops.get_rx_ring_count` (else a compat `get_rxnfc` answers `ETHTOOL_GRXRINGS` so RXFH sets / `ethtool -X ... equal N` still report the ring count) |
+| `ETHTOOL_COALESCE_RX_CQE_FRAMES` | 7.1 | `kernel_ethtool_coalesce.rx_cqe_frames`/`rx_cqe_nsecs` + `ETHTOOL_COALESCE_RX_CQE_FRAMES` |
 
 `configure` and `mana_compat_features.h` carry the same set of feature flags and
 must stay in lockstep.

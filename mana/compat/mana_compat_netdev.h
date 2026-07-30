@@ -1,38 +1,32 @@
 /* SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause */
 /* Copyright (c) 2026, Microsoft Corporation. */
 /*
- * netdevice back-compat used at the anchor commit:
- *   - netif_napi_add_weight() weighted NAPI-add (introduced v5.19; on 5.15
- *     the weight is the 4th arg of netif_napi_add itself).
- *   - netif_napi_add_tx() TX-only NAPI-add (introduced v5.19; on 5.15
- *     resolves to netif_napi_add_weight + NAPI_POLL_WEIGHT).
- *   - netdev_lockdep_set_classes() lockdep-classes helper. Kernels <= v6.14
- *     provide it in <linux/netdevice.h>; kernels v6.15+ moved it to
- *     <net/netdev_lock.h>. Force-include the newer header when present.
+ * netdevice back-compat: reference tracker, netdev_hold(), TSO sizing and the
+ * weighted NAPI-add helper.
+ *
+ * The instance-locked NAPI family (napi_*_locked, netif_napi_*_locked) lives in
+ * the backport-include/net/netdev_lock.h overlay, because the verbatim body
+ * reaches it via `#include <net/netdev_lock.h>`. This header provides the
+ * plain (non-overlay) netdevice helpers the body needs.
  */
 #ifndef MANA_COMPAT_NETDEV_H
 #define MANA_COMPAT_NETDEV_H
 
 #include <linux/netdevice.h>
 
-/* v6.15+ moved netdev_lockdep_set_classes to <net/netdev_lock.h>. Pull it
- * in unconditionally where present so the driver's plain call resolves. */
-#if defined(__has_include)
-# if __has_include(<net/netdev_lock.h>)
-#  include <net/netdev_lock.h>
-# endif
-#endif
-
 /* netdevice_tracker: reference tracker type from <net/net_trackers.h> (v5.17,
- * pulled in by <linux/netdevice.h> when present). Detect via that header's
- * include guard so we only fill the gap on kernels that predate it. The
- * empty struct matches the !CONFIG_NET_DEV_REFCNT_TRACKER form. */
+ * pulled in by <linux/netdevice.h> when present). Detect via that header's own
+ * include guard so we only fill the gap on kernels that predate it; the empty
+ * struct matches the !CONFIG_NET_DEV_REFCNT_TRACKER form.
+ */
 #ifndef __NET_NET_TRACKERS_H
 typedef struct {} netdevice_tracker;
 #endif
 
-/* netif_napi_add_weight(): weighted NAPI-add. On < v5.19, weight is the 4th
- * arg of netif_napi_add() itself. */
+/* netif_napi_add_weight(): weighted NAPI add (v6.1). Before 6.1, the weight was
+ * the 4th argument to netif_napi_add() itself. Used by the netdev_lock overlay
+ * shims as well as wherever the body adds NAPI instances.
+ */
 #if !MANA_HAVE_NETIF_NAPI_ADD_WEIGHT
 static inline void netif_napi_add_weight(struct net_device *dev,
 					 struct napi_struct *napi,
@@ -43,8 +37,10 @@ static inline void netif_napi_add_weight(struct net_device *dev,
 }
 #endif
 
-/* netif_napi_add_tx(): TX-only NAPI-add helper. On < v5.19, delegate to
- * netif_napi_add_weight with the standard NAPI_POLL_WEIGHT (64). */
+/* netif_napi_add_tx(): TX-only NAPI-add helper (v5.19). Transitional -- the
+ * anchor-era driver body uses it; on < v5.19 delegate to netif_napi_add_weight
+ * with NAPI_POLL_WEIGHT. Dropped once the driver reconciles to its final form.
+ */
 #if !MANA_HAVE_NETIF_NAPI_ADD_TX
 static inline void netif_napi_add_tx(struct net_device *dev,
 				     struct napi_struct *napi,
@@ -54,8 +50,22 @@ static inline void netif_napi_add_tx(struct net_device *dev,
 }
 #endif
 
-/* netif_set_tso_max_size(): cap the TSO/GSO size (v5.19+). Older kernels
- * expose the same cap as netif_set_gso_max_size. */
+/* netdev_hold(): tracked reference acquire (v6.1). Older kernels take a plain
+ * refcount; the tracker argument is ignored.
+ */
+#if !MANA_HAVE_NETDEV_HOLD
+static inline void netdev_hold(struct net_device *dev,
+			       netdevice_tracker *tracker, gfp_t gfp)
+{
+	(void)tracker;
+	(void)gfp;
+	dev_hold(dev);
+}
+#endif
+
+/* netif_set_tso_max_size(): cap the TSO/GSO size (v5.19). Older kernels expose
+ * the same cap as netif_set_gso_max_size().
+ */
 #if !MANA_HAVE_NETIF_SET_TSO_MAX_SIZE
 static inline void netif_set_tso_max_size(struct net_device *dev,
 					  unsigned int size)
@@ -64,16 +74,33 @@ static inline void netif_set_tso_max_size(struct net_device *dev,
 }
 #endif
 
-
-/* netdev_hold(): tracked reference acquire (v6.1+). Older kernels take a
- * plain refcount; the tracker argument is ignored. */
-#if !MANA_HAVE_NETDEV_HOLD
-static inline void netdev_hold(struct net_device *dev,
-			       netdevice_tracker *tracker, gfp_t gfp)
+/* netdev_lock()/netdev_unlock(): per-instance ops-mutex acquire/release
+ * (v6.15). The verbatim body calls these to serialise a small block of
+ * link-config-error mutation on the resume path, while already holding
+ * rtnl_lock(). On kernels that predate the per-instance netdev lock, RTNL
+ * is the only cross-cpu barrier available and is already held, so the
+ * netdev_lock() acquire is a no-op there.
+ */
+#if !MANA_HAVE_NETDEV_LOCK_FN
+static inline void netdev_lock(struct net_device *dev)
 {
-	(void)tracker;
-	(void)gfp;
-	dev_hold(dev);
+	(void)dev;
+}
+
+static inline void netdev_unlock(struct net_device *dev)
+{
+	(void)dev;
+}
+
+/* netdev_assert_locked(): lockdep assertion that the caller holds the
+ * per-instance netdev lock. Since we no-op the lock itself on older
+ * kernels, no-op the assertion too. Callers of this in the driver body
+ * are always already under rtnl_lock(), which is the correct barrier on
+ * these kernels.
+ */
+static inline void netdev_assert_locked(struct net_device *dev)
+{
+	(void)dev;
 }
 #endif
 

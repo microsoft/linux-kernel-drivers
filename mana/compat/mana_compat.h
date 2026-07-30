@@ -30,6 +30,11 @@
  * v6.15 <net/netdev_lock.h> forward-include. */
 #include "mana_compat_netdev.h"
 
+/* alloc back-compat: kmalloc_obj / kzalloc_obj / *_objs / *_flex typed
+ * allocation family (v7.0+). Force-included because the verbatim driver body
+ * (e.g. gdma_main.c) calls them directly. */
+#include "mana_compat_alloc.h"
+
 /* Core kernel back-compat: hop_jumbo helpers (v5.19) and
  * dma_set_max_seg_size return-type (v6.13). */
 #include "mana_compat_kernel.h"
