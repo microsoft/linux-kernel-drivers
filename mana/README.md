@@ -359,3 +359,56 @@ sudo apt-get install linux-headers-$(uname -r)
 sudo tdnf install kernel-devel-$(uname -r)   # or: dnf install kernel-devel-$(uname -r)
 sudo dkms autoinstall
 ```
+
+## Out-of-tree controls
+
+Beyond the in-tree knobs, the compat layer adds two ways to reach one
+device-level control — 4-deep RX CQE coalescing (`CQE_RX_COALESCED_4`,
+implemented in the device firmware and toggled through
+`mana_port_context::cqe_coalescing_enable`). Both routes are additive to
+the driver's upstream ethtool surface, implemented in `compat/`, and never
+alter the driver body.
+
+**Portable route (ethtool private flag).** Present on every supported
+kernel; the recommended way to script the knob because the command line is
+identical across all versions.
+
+| Private flag | Toggles |
+|--------------|---------|
+| `rx_cqe_coalesce_4` | 4-deep RX CQE coalescing (`cqe_coalescing_enable = 1`) |
+
+```sh
+ethtool --set-priv-flags eth0 rx_cqe_coalesce_4 on    # ask the device to coalesce 4 CQEs
+ethtool --set-priv-flags eth0 rx_cqe_coalesce_4 off   # back to 1 CQE per packet
+ethtool --show-priv-flags eth0                        # current state
+```
+
+**Native ethtool coalesce interface.** On kernels ≥ v7.1 the upstream driver
+uses the new `kernel_ethtool_coalesce.rx_cqe_frames` field, exposed by
+ethtool as `rx-cqe-frames`. On kernels < v7.1 the compat layer's OLD-sig
+adapters route the *legacy* `rx_max_coalesced_frames` field (exposed by
+ethtool as `rx-frames`) to the same driver handler through a stack-local
+shim struct, so the same underlying state is reachable through
+`ethtool -c/-C` without any kernel-version awareness in the code path.
+
+```sh
+# On kernels < v7.1 (5.15, 6.1, 6.6, 6.12):
+sudo ethtool -C eth0 rx-frames 4        # enable  4-deep CQE coalescing
+sudo ethtool -C eth0 rx-frames 1        # disable
+# On kernels ≥ v7.1 (native):
+sudo ethtool -C eth0 rx-cqe-frames 4    # enable
+sudo ethtool -C eth0 rx-cqe-frames 1    # disable
+# Either kernel: read current state
+ethtool -c eth0
+```
+
+The two routes share state — setting via the priv-flag is reflected in
+`ethtool -c` output, and vice versa. Only 1 and 4 are accepted; other
+values return `netlink error: Invalid argument` from the driver's own
+validation. The datapath that *unpacks* coalesced CQEs is unconditional
+upstream code on every kernel; these controls only govern whether the
+device is asked to coalesce in the first place.
+
+The deliberately distinct, width-bearing name of the private flag
+(`rx_cqe_coalesce_4`) keeps it from being mistaken for a general-purpose
+`rx-frames`-like coalesce count control.

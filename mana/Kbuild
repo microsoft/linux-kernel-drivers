@@ -1,11 +1,25 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Kbuild for the out-of-tree MANA module. Every build MUST enter through the
-# top-level Makefile so ./configure runs first and MANA_COMPAT_PROBED=1 is set.
+# Kbuild for the out-of-tree MANA module. The checked top-level Makefile runs
+# ./configure before invoking kbuild. mana_compat.h then directly includes the
+# generated feature map, so bypassing the wrapper fails rather than guessing.
 #
-# Driver .c file set is wildcard-derived so this file survives every step of
-# upstream history without editing -- files that don't exist yet at a given
-# bisect state are simply not compiled at that state.
+# Include order is load-bearing:
+#   * NOSTDINC_FLAGS is emitted on the compiler command line BEFORE LINUXINCLUDE,
+#     so anything placed there shadows the in-kernel headers of the same name.
+#     - backport-include/ overlays win for `#include <net/...>` and their
+#       `#include_next` still reaches the real kernel header underneath.
+#     - driver/include carries the vendored <net/mana/*.h> headers and MUST be
+#       here, not in ccflags-y. ccflags-y lands AFTER LINUXINCLUDE, so on any
+#       kernel that ships include/net/mana/ (mainline >= 6.6, plus backport trees
+#       like Debian's 6.1 cloud kernel) the kernel's own net/mana headers would
+#       shadow ours and the verbatim driver would compile against mismatched
+#       struct/prototype definitions. Placing it ahead of LINUXINCLUDE makes the
+#       captive driver truly captive: it always builds against its own vendored
+#       headers regardless of what the host kernel ships.
+#   * The umbrella mana_compat.h is force-included into every TU so the verbatim
+#     driver sources stay unedited; it pulls in the generated feature map and all
+#     the shims.
 
 ifneq ($(MANA_COMPAT_PROBED),1)
 $(error mana-compat: invoke the top-level Makefile so the target kernel is re-probed)
@@ -17,21 +31,48 @@ NOSTDINC_FLAGS += -I$(src)/driver/include
 ccflags-y += -I$(src)/compat
 ccflags-y += -include $(src)/compat/mana_compat.h
 
-# -fplan9-extensions: enables anonymous embedding of named struct types and
-# implicit pointer conversion. Used later by wrapper-TU and header overlays.
+# The <net/net_shaper.h> overlay uses anonymous embedding of struct
+# net_device_ops to keep driver/mana_en.c byte-identical to upstream on
+# kernels < v6.13 (where struct net_device_ops has no .net_shaper_ops
+# member). -fplan9-extensions enables both the embed and the implicit
+# pointer conversion at `ndev->netdev_ops = &mana_devops`. Supported by
+# both GCC and Clang; scope is this module only.
 ccflags-y += -fplan9-extensions
 
-# Bump pre-5.18 kernels to gnu11: the verbatim driver body uses C99 for-loop
-# initial declarations and older kernels force gnu89.
+# C dialect floor. The captive driver under driver/ is modern kernel C, and the
+# compat macros that mirror upstream (e.g. for_each_numa_hop_mask) use C99
+# for-loop initial declarations. The kernel build system only adopted
+# -std=gnu11 in v5.18; earlier kernels force -std=gnu89, which rejects those.
+# ccflags-y lands AFTER KBUILD_CFLAGS on the compile command line, so the last
+# -std= wins. Bump pre-5.18 kernels up to gnu11 (the dialect this driver was
+# written for) and leave v5.18+ (already gnu11 or newer) untouched so we never
+# downgrade a future kernel. VERSION/PATCHLEVEL come from the kernel build tree.
 mana_kver_lt_518 := $(shell { [ $(VERSION) -lt 5 ] || { [ $(VERSION) -eq 5 ] && [ $(PATCHLEVEL) -lt 18 ]; }; } && echo y)
 ifeq ($(mana_kver_lt_518),y)
 ccflags-y += -std=gnu11
 endif
 
+# Stamp the module's modinfo `version` with the DKMS package version
+# (<MANA internal>+linux<source>+compat<rev>). Read straight from dkms.conf -- the
+# single authoritative copy, the same parse debian/rules uses -- so `modinfo
+# version` always matches the installed package. A miss falls back to a benign
+# default and never breaks the build. Consumed only by compat/mana_compat_info.c
+# via MODULE_VERSION(); the captive body is untouched.
+mana_pkg_version := $(shell sed -n 's/^PACKAGE_VERSION="\([^"]*\)".*/\1/p' '$(src)/dkms.conf' 2>/dev/null | head -n1)
+ifeq ($(mana_pkg_version),)
+mana_pkg_version := 0.0.0+unknown
+endif
+ccflags-y += -DMANA_COMPAT_VERSION=\"$(mana_pkg_version)\"
+
 obj-m += mana-compat.o
-mana-driver-objs := $(patsubst $(src)/%.c,%.o,$(wildcard $(src)/driver/*.c))
-# mana_ethtool.o is subsumed by the wrapper TU (compat/mana_compat_ethtool_wrapper.o).
-mana-driver-objs := $(filter-out driver/mana_ethtool.o,$(mana-driver-objs))
-mana-compat-objs := $(mana-driver-objs) \
+
+mana-compat-objs := \
+	driver/gdma_main.o \
+	driver/hw_channel.o \
+	driver/mana_bpf.o \
+	driver/mana_en.o \
 	compat/mana_compat_ethtool_wrapper.o \
+	driver/shm_channel.o \
+	compat/mana_compat_info.o \
+	compat/mana_compat_privflags.o \
 	compat/mana_compat_ethtool_ops.o
