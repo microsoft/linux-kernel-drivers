@@ -386,6 +386,36 @@ probe MANA_HAVE_BPF_WARN_XDP_3ARG \
 #include <linux/filter.h>" \
 "bpf_warn_invalid_xdp_action((void *)0, (void *)0, 0);"
 
+# ---- dynamic interrupt moderation (lib/dim) --------------------------------
+# The in-tree driver gained `select DIMLIB` together with its interrupt
+# moderation support. An out-of-tree module cannot select a Kconfig symbol, so
+# detect whether the target kernel actually built lib/dim: with CONFIG_DIMLIB=n
+# net_dim() & co. are not in vmlinux and the module would fail modpost with
+# "Unknown symbol". compat/mana_compat_dim.h stubs them out in that case, and
+# the register_netdev interceptor withdraws the adaptive-coalescing
+# advertisement, leaving static interrupt moderation (plain doorbell writes,
+# no library) fully functional.
+probe MANA_HAVE_DIMLIB \
+"#include <linux/module.h>
+#include <linux/kconfig.h>
+#if !IS_ENABLED(CONFIG_DIMLIB)
+#error config-dimlib-disabled
+#endif" \
+"(void)0;"
+
+# net_dim() took its end sample BY VALUE until v6.13 (commit 61bf0009a765
+# "dim: pass dim_sample to net_dim() by reference"), which switched the
+# parameter to a const pointer. The verbatim body uses the new pointer form.
+# Passing the wrong one is a hard "incompatible type for argument" error, so
+# exactly one of the two snippets compiles on any given kernel.
+probe_old_new MANA_HAVE_NET_DIM_SAMPLE_PTR \
+"#include <linux/module.h>
+#include <linux/dim.h>" \
+"struct dim_sample _s = {}; net_dim((struct dim *)0, _s);" \
+"#include <linux/module.h>
+#include <linux/dim.h>" \
+"struct dim_sample _s = {}; net_dim((struct dim *)0, &_s);"
+
 # ---- emit ------------------------------------------------------------------
 {
 	echo '/* SPDX-License-Identifier: GPL-2.0-or-later */'

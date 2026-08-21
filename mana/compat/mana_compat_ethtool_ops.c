@@ -95,8 +95,9 @@ static int mana_compat_get_rxnfc(struct net_device *ndev,
  *
  * On <v7.1 the real kernel_ethtool_coalesce lacks `.rx_cqe_frames`, so the
  * adapters IGNORE the incoming `kern` pointer -- the driver's shim-typed
- * handlers must never touch a kernel-allocated struct. The bridge builds
- * its own stack-local shim and translates ec->rx_max_coalesced_frames.
+ * handlers must never touch a kernel-allocated struct. The bridge builds its
+ * own stack-local shim. `ec` and `extack` are passed straight through: every
+ * field the legacy struct ethtool_coalesce carries keeps its upstream meaning.
  */
 #if !MANA_HAVE_ETHTOOL_COALESCE_RX_CQE_FRAMES
 static int mana_compat_get_coalesce_old(struct net_device *ndev,
@@ -105,8 +106,7 @@ static int mana_compat_get_coalesce_old(struct net_device *ndev,
 					struct netlink_ext_ack *extack)
 {
 	(void)kern;
-	(void)extack;
-	return mana_compat_coalesce_bridge_get(ndev, ec);
+	return mana_compat_coalesce_bridge_get(ndev, ec, extack);
 }
 
 static int mana_compat_set_coalesce_old(struct net_device *ndev,
@@ -115,8 +115,7 @@ static int mana_compat_set_coalesce_old(struct net_device *ndev,
 					struct netlink_ext_ack *extack)
 {
 	(void)kern;
-	(void)extack;
-	return mana_compat_coalesce_bridge_set(ndev, ec);
+	return mana_compat_coalesce_bridge_set(ndev, ec, extack);
 }
 #endif
 
@@ -218,26 +217,44 @@ int mana_compat_register_netdev(struct net_device *ndev)
 	 * (which has the .rx_cqe_frames field the driver body uses); the
 	 * kernel-visible slots therefore stay NULL after the memcpy.
 	 *
-	 * Install OLD-sig adapters at the kernel-visible slots. They
-	 * translate ec->rx_max_coalesced_frames <-> the shim's rx_cqe_frames
-	 * via a stack-local shim built by mana_compat_coalesce_bridge_{get,set}
-	 * in the wrapper TU. Effect: on <v7.1, `ethtool -c/-C <if>` and its
-	 * `rx-frames` field reach the same device state that v7.1+ native
-	 * `-C rx-cqe-frames` reaches, and that the OOT priv-flag
-	 * `rx_cqe_coalesce_4` reaches on every kernel. All three routes
-	 * toggle the same u8 (mana_port_context::cqe_coalescing_enable) and
-	 * reprogram RSS the same way.
+	 * Install OLD-sig adapters at the kernel-visible slots. They forward
+	 * ec/extack unchanged to mana_compat_coalesce_bridge_{get,set} in the
+	 * wrapper TU, which supplies the stack-local shim.
 	 *
-	 * Advertise the legacy ETHTOOL_COALESCE_RX_MAX_FRAMES bit so the
-	 * ethtool netlink core dispatches SET requests to us instead of
-	 * returning -EOPNOTSUPP. The driver body writes 0 here on <v7.1
-	 * (ETHTOOL_COALESCE_RX_CQE_FRAMES is #define'd to 0 by the wrapper);
-	 * we overwrite with the legacy bit only, so we never claim any
-	 * other coalesce parameter we do not actually implement.
+	 * Kernels < v7.1 also lack ETHTOOL_COALESCE_RX_CQE_FRAMES, which the
+	 * wrapper defines to 0 -- so keep a floor under whatever the driver
+	 * body advertises: the ethtool netlink core dispatches a SET only for
+	 * bits present here, and an all-zero mask would make -c/-C return
+	 * -EOPNOTSUPP outright. ETHTOOL_COALESCE_RX_MAX_FRAMES exists on every
+	 * supported kernel and is a parameter the driver body implements, so
+	 * OR-ing it in never claims something we do not honour.
 	 */
-	staging.supported_coalesce_params = ETHTOOL_COALESCE_RX_MAX_FRAMES;
+	staging.supported_coalesce_params |= ETHTOOL_COALESCE_RX_MAX_FRAMES;
 	staging.get_coalesce = mana_compat_get_coalesce_old;
 	staging.set_coalesce = mana_compat_set_coalesce_old;
+#endif
+
+#if !MANA_HAVE_DIMLIB
+	/*
+	 * CONFIG_DIMLIB=n: net_dim() is stubbed out (compat/mana_compat_dim.h),
+	 * so adaptive moderation cannot work. Withdraw the advertisement --
+	 * the ethtool core then rejects `-C adaptive-rx/tx on` with
+	 * -EOPNOTSUPP instead of silently accepting a knob that does nothing --
+	 * and clear the per-port enables the driver set from
+	 * MANA_ADAPTIVE_{RX,TX}_DEF, so `ethtool -c` reports the truth and the
+	 * NAPI-side mana_update_{rx,tx}_dim() short-circuit before net_dim().
+	 * Static interrupt moderation is unaffected: it is plain doorbell
+	 * traffic and needs no library.
+	 */
+	staging.supported_coalesce_params &=
+		~(u32)(ETHTOOL_COALESCE_USE_ADAPTIVE_RX |
+		       ETHTOOL_COALESCE_USE_ADAPTIVE_TX);
+	{
+		struct mana_port_context *apc = netdev_priv(ndev);
+
+		apc->rx_dim_enabled = false;
+		apc->tx_dim_enabled = false;
+	}
 #endif
 
 	/* Publish the fully-augmented staging to the shared shadow. Writes

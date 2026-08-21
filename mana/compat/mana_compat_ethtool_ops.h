@@ -110,19 +110,25 @@ int  mana_compat_set_ringparam_old(struct net_device *dev,
  * shim-typed handlers must never touch).
  *
  * User path on <v7.1:
- *   ethtool -c <if>          -> mana_compat_get_coalesce_old ->
- *                              mana_compat_coalesce_bridge_get ->
- *                              mana_get_coalesce (with stack shim)
- *   ethtool -C <if> rx-frames N -> mana_compat_set_coalesce_old ->
+ *   ethtool -c <if>              -> mana_compat_get_coalesce_old ->
+ *                                   mana_compat_coalesce_bridge_get ->
+ *                                   mana_get_coalesce (with stack shim)
+ *   ethtool -C <if> rx-usecs N   -> mana_compat_set_coalesce_old ->
  *                                   mana_compat_coalesce_bridge_set ->
  *                                   mana_set_coalesce (with stack shim)
+ *
+ * The rx_cqe_frames plane has no uAPI on those kernels; the OOT private
+ * flag rx_cqe_coalesce_4 is its portable door. See the bridge comments.
  */
 #if !MANA_HAVE_ETHTOOL_COALESCE_RX_CQE_FRAMES
 struct ethtool_coalesce;
+struct netlink_ext_ack;
 int mana_compat_coalesce_bridge_get(struct net_device *dev,
-				    struct ethtool_coalesce *ec);
+				    struct ethtool_coalesce *ec,
+				    struct netlink_ext_ack *extack);
 int mana_compat_coalesce_bridge_set(struct net_device *dev,
-				    struct ethtool_coalesce *ec);
+				    struct ethtool_coalesce *ec,
+				    struct netlink_ext_ack *extack);
 #endif
 
 #endif /* MANA_COMPAT_ETHTOOL_OPS_H */

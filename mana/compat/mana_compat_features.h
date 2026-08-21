@@ -39,7 +39,9 @@
 	!defined(MANA_HAVE_DISABLE_WORK_SYNC) || \
 	!defined(MANA_HAVE_SKB_TCP_ALL_HEADERS) || \
 	!defined(MANA_HAVE_XDP_FEATURES) || \
-	!defined(MANA_HAVE_BPF_WARN_XDP_3ARG)
+	!defined(MANA_HAVE_BPF_WARN_XDP_3ARG) || \
+	!defined(MANA_HAVE_DIMLIB) || \
+	!defined(MANA_HAVE_NET_DIM_SAMPLE_PTR)
 #error "mana-compat: incomplete generated feature map; rerun ./configure"
 #endif
 

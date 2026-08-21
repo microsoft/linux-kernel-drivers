@@ -43,6 +43,7 @@
 #include "mana_compat_pci.h"
 #include "mana_compat_netdev.h"
 #include "mana_compat_ethtool.h"
+#include "mana_compat_dim.h"
 #include "mana_compat_xdp.h"
 
 /* ---- 4. Out-of-tree control surfaces ---------------------------------- */

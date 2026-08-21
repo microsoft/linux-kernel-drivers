@@ -29,4 +29,4 @@
 # the version, so this may be reset to 1 -- but only when the source version
 # actually changed, or the package version would go backwards. A re-vendor
 # therefore leaves it untouched.
-PACKAGE_REVISION=5
+PACKAGE_REVISION=6

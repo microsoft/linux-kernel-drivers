@@ -232,45 +232,58 @@ int mana_compat_set_ringparam_old(struct net_device *ndev,
  *
  * These bridge functions -- defined in this wrapper TU where the driver's
  * static mana_{get,set}_coalesce are visible AND kernel_ethtool_coalesce
- * has been renamed to __mana_kernel_ethtool_coalesce_shim -- allocate
- * the shim on their own stack, translate ec->rx_max_coalesced_frames
- * (the legacy field, present on every kernel) to/from the shim's
- * trailing .rx_cqe_frames, and call the driver's own functions. The
- * OLD-sig adapters in mana_compat_ethtool_ops.c call these bridges
- * with an on-stack shim, so the kernel's real kernel_ethtool_coalesce
- * is never accessed as if it were a shim.
+ * has been renamed to __mana_kernel_ethtool_coalesce_shim -- allocate the
+ * shim on their own stack and call the driver's own functions with it. The
+ * OLD-sig adapters in mana_compat_ethtool_ops.c call these bridges, so the
+ * kernel's real kernel_ethtool_coalesce is never accessed as if it were a
+ * shim. Everything the *legacy* struct ethtool_coalesce carries (interrupt
+ * moderation usecs/frames, adaptive RX/TX) is passed straight through in
+ * `ec`, so it keeps its upstream meaning on every kernel.
  *
- * User-facing effect on <v7.1: `ethtool -c <if>` shows current state as
- * `rx-frames: 4` or `rx-frames: 1`, and `sudo ethtool -C <if> rx-frames 4`
- * enables 4-deep CQE coalescing (same device state the v7.1+ native
- * `-C rx-cqe-frames 4` reaches, and the same state the priv-flag
- * `rx_cqe_coalesce_4` reaches).
+ * The rx_cqe_frames plane is the only thing that has no uAPI here: the
+ * netlink attribute behind it is a v7.1 kernel-core addition and cannot be
+ * shimmed. So on <v7.1 the bridge feeds the driver the CURRENT device
+ * state, which makes the driver's own validation pass and its
+ * reprogram-on-change test a no-op -- leaving that knob solely to the OOT
+ * private flag `rx_cqe_coalesce_4` (compat/mana_compat_privflags.c), which
+ * reaches the same mana_port_context::cqe_coalescing_enable on every
+ * supported kernel.
+ *
+ * NOTE: this deliberately no longer borrows ec->rx_max_coalesced_frames as
+ * a stand-in for rx_cqe_frames. Since upstream's interrupt-moderation
+ * support that field means the RX moderation completion count and is
+ * consumed by the driver body itself; hijacking it would both misprogram
+ * moderation and silently toggle CQE coalescing.
  */
 int mana_compat_coalesce_bridge_get(struct net_device *ndev,
-				    struct ethtool_coalesce *ec)
+				    struct ethtool_coalesce *ec,
+				    struct netlink_ext_ack *extack)
 {
 	struct __mana_kernel_ethtool_coalesce_shim kern = {};
-	int ret = mana_get_coalesce(ndev, ec, &kern, NULL);
 
-	if (ret)
-		return ret;
-	/* Report the driver's shim-plane state (1 or MANA_RXCOMP_OOB_NUM_PPI)
-	 * through the legacy ec.rx_max_coalesced_frames field. */
-	ec->rx_max_coalesced_frames = kern.rx_cqe_frames;
-	return 0;
+	/* kern is write-only here: its rx_cqe_frames / rx_cqe_nsecs have no
+	 * uAPI to be reported through on this kernel. Everything the user
+	 * can actually see is returned in ec.
+	 */
+	return mana_get_coalesce(ndev, ec, &kern, extack);
 }
 
 int mana_compat_coalesce_bridge_set(struct net_device *ndev,
-				    struct ethtool_coalesce *ec)
+				    struct ethtool_coalesce *ec,
+				    struct netlink_ext_ack *extack)
 {
-	/* Feed the legacy field to the driver's shim-plane input. The driver's
-	 * own validation (must be 1 or MANA_RXCOMP_OOB_NUM_PPI, with an
-	 * extack message on rejection) and reprogram-with-rollback logic
-	 * run unchanged. */
+	struct mana_port_context *apc = netdev_priv(ndev);
+	/* Re-assert the current CQE-coalescing state so the driver's
+	 * "must be 1 or MANA_RXCOMP_OOB_NUM_PPI" validation passes and its
+	 * changed/unchanged test sees no change -- no RSS reprogram, no
+	 * surprise toggle. Mirrors what mana_get_coalesce() would report.
+	 */
 	struct __mana_kernel_ethtool_coalesce_shim kern = {
-		.rx_cqe_frames = ec->rx_max_coalesced_frames,
+		.rx_cqe_frames = apc->cqe_coalescing_enable ?
+				 MANA_RXCOMP_OOB_NUM_PPI : 1,
+		.rx_cqe_nsecs  = apc->cqe_coalescing_timeout_ns,
 	};
 
-	return mana_set_coalesce(ndev, ec, &kern, NULL);
+	return mana_set_coalesce(ndev, ec, &kern, extack);
 }
 #endif

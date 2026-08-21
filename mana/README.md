@@ -58,6 +58,7 @@ mana/
 │  ├─ mana_compat_export.h         EXPORT_SYMBOL_NS string-namespace shim
 │  ├─ mana_compat_info.c           MODULE_VERSION stamp (DKMS package version)
 │  ├─ mana_compat_privflags.{c,h}  out-of-tree ethtool private-flags control plane
+│  ├─ mana_compat_dim.h           DIM (lib/dim) availability + net_dim() sig
 │  ├─ mana_compat_{alloc,kernel,cleanup,cpumask,pci,netdev,ethtool,xdp}.h
 │  └─ backport-include/net/        header OVERLAYS resolved before LINUXINCLUDE
 │     ├─ net_shaper.h              (so verbatim `#include <net/...>` keeps
@@ -165,10 +166,12 @@ the target kernel.
 | `PAGE_POOL_FREE_VA`            | 6.12 | `page_pool_free_va()` |
 | `CPUMASK_VAR_CLEANUP`          | 6.12 | `DEFINE_FREE(free_cpumask_var)` cleanup class |
 | `EXPORT_SYMBOL_NS_STRING`      | 6.13 | string-literal namespace form |
+| `NET_DIM_SAMPLE_PTR`           | 6.13 | `net_dim()` takes the end sample by const pointer (was by value) |
 | `NET_SHAPER`                   | 6.13 | `net_device_ops.net_shaper_ops` + `net/net_shaper.h` |
 | `NETDEV_LOCK`                  | 6.15 | `net/netdev_lock.h` `*_locked()` NAPI family |
 | `ETHTOOL_OPS_RX_RING_COUNT`    | 7.0  | `ethtool_ops.get_rx_ring_count` (else a compat `get_rxnfc` answers `ETHTOOL_GRXRINGS` so RXFH sets / `ethtool -X ... equal N` still report the ring count) |
 | `ETHTOOL_COALESCE_RX_CQE_FRAMES` | 7.1 | `kernel_ethtool_coalesce.rx_cqe_frames`/`rx_cqe_nsecs` + `ETHTOOL_COALESCE_RX_CQE_FRAMES` |
+| `DIMLIB`                       | n/a  | target kernel built with `CONFIG_DIMLIB` (the in-tree driver `select`s it; an out-of-tree module cannot). Absent, `net_dim()` is stubbed inert, the `ETHTOOL_COALESCE_USE_ADAPTIVE_{RX,TX}` advertisement is withdrawn and `adaptive-rx/tx` report `off` — *static* interrupt moderation still works |
 
 `configure` and `mana_compat_features.h` carry the same set of feature flags and
 must stay in lockstep.
@@ -385,26 +388,33 @@ ethtool --show-priv-flags eth0                        # current state
 
 **Native ethtool coalesce interface.** On kernels ≥ v7.1 the upstream driver
 uses the new `kernel_ethtool_coalesce.rx_cqe_frames` field, exposed by
-ethtool as `rx-cqe-frames`. On kernels < v7.1 the compat layer's OLD-sig
-adapters route the *legacy* `rx_max_coalesced_frames` field (exposed by
-ethtool as `rx-frames`) to the same driver handler through a stack-local
-shim struct, so the same underlying state is reachable through
-`ethtool -c/-C` without any kernel-version awareness in the code path.
+ethtool as `rx-cqe-frames`. That field is a kernel-core netlink attribute,
+not an in-kernel inline, so it cannot be shimmed: on kernels < v7.1 there is
+no `ethtool -c/-C` route to it at all and the private flag above is the only
+door.
 
 ```sh
-# On kernels < v7.1 (5.15, 6.1, 6.6, 6.12):
-sudo ethtool -C eth0 rx-frames 4        # enable  4-deep CQE coalescing
-sudo ethtool -C eth0 rx-frames 1        # disable
-# On kernels ≥ v7.1 (native):
+# Every supported kernel:
+sudo ethtool --set-priv-flags eth0 rx_cqe_coalesce_4 on
+# On kernels ≥ v7.1, additionally:
 sudo ethtool -C eth0 rx-cqe-frames 4    # enable
 sudo ethtool -C eth0 rx-cqe-frames 1    # disable
-# Either kernel: read current state
-ethtool -c eth0
+ethtool -c eth0                         # read current state
 ```
 
-The two routes share state — setting via the priv-flag is reflected in
-`ethtool -c` output, and vice versa. Only 1 and 4 are accepted; other
-values return `netlink error: Invalid argument` from the driver's own
+> Earlier revisions of this package borrowed the legacy
+> `rx_max_coalesced_frames` field (`ethtool -C ... rx-frames N`) as a
+> stand-in for `rx-cqe-frames` on kernels < v7.1. That is gone: since the
+> driver gained interrupt-moderation support, `rx-frames` is a real upstream
+> parameter (the RX moderation completion count) consumed by the driver body
+> itself, and continuing to hijack it would both misprogram moderation and
+> silently toggle CQE coalescing. Scripts that used
+> `ethtool -C <if> rx-frames 4` to enable CQE coalescing must move to
+> `ethtool --set-priv-flags <if> rx_cqe_coalesce_4 on`.
+
+The two remaining routes share state — setting via the priv-flag is reflected
+in `ethtool -c` output on v7.1+, and vice versa. Only 1 and 4 are accepted;
+other values return `netlink error: Invalid argument` from the driver's own
 validation. The datapath that *unpacks* coalesced CQEs is unconditional
 upstream code on every kernel; these controls only govern whether the
 device is asked to coalesce in the first place.
