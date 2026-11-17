@@ -20,6 +20,7 @@
 #include "mana_ib_compat_legacy.h"
 #include "mana_ib_compat_verbs.h"
 #include "mana_ib_compat_umem.h"
+#include "mana_ib_compat_udata.h"
 
 /* Paired MANA exports use private names, not the in-tree NET_MANA namespace. */
 #undef MODULE_IMPORT_NS
