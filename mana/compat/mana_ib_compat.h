@@ -9,6 +9,15 @@
 #include "mana_ib_compat_exports.h"
 #include "mana_compat.h"
 #include <linux/module.h>
+#include <rdma/ib_verbs.h>
+#if MANA_IB_HAVE_ITER_HEADER
+#include <rdma/iter.h>
+#endif
+#if !MANA_IB_HAVE_DRIVER_ID
+#define RDMA_DRIVER_MANA ((enum rdma_driver_id)20)
+#endif
+
+#include "mana_ib_compat_legacy.h"
 
 /* Paired MANA exports use private names, not the in-tree NET_MANA namespace. */
 #undef MODULE_IMPORT_NS

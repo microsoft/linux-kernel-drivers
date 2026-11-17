@@ -210,6 +210,17 @@ configure_mana_ib() {
 #error RDMA core and userspace memory support are required
 #endif' ""
 
+	probe_mana_ib MANA_IB_HAVE_ITER_HEADER '#include <rdma/iter.h>'
+	probe_mana_ib MANA_IB_HAVE_DRIVER_ID '#include <rdma/ib_verbs.h>
+static enum rdma_driver_id id __used = RDMA_DRIVER_MANA;'
+	probe_mana_ib MANA_IB_CQ_CREATE_ATTRS '#include <rdma/ib_verbs.h>
+static_assert(__same_type(typeof(((struct ib_device_ops *)0)->create_cq),
+	int (*)(struct ib_cq *, const struct ib_cq_init_attr *, struct uverbs_attr_bundle *)));'
+	probe_mana_ib MANA_IB_REG_MR_DMAH '#include <rdma/ib_verbs.h>
+static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr),
+	struct ib_mr *(*)(struct ib_pd *, u64, u64, u64, int, struct ib_dmah *, struct ib_udata *)));'
+	if grep -q 'struct mana_cfg_rx_steer_req \*' "$srcdir/driver/drivers/infiniband/hw/mana/qp.c"; then val=1; else val=0; fi
+	printf '#define MANA_IB_SOURCE_RX_STEER_V1 %s\n' "$val" >> "$RESULTS"
 	if grep -q '"mana.eth"' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
 	printf '#define MANA_IB_HAVE_ETH_AUX %s\n' "$val" >> "$RESULTS"
 	{
