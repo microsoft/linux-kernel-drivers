@@ -232,11 +232,14 @@ static u16 (*helper)(u32, u32, u32) __used = rdma_get_udp_sport;'
 	qp_output="$srcdir/compat/autogen/qp.c"
 	# Historical raw/RSS QPs used adapter-wide EQs. The paired MANA owns them
 	# per port, and only num_queues entries exist (not max_num_queues).
-	sed -e 's/&mc->eqs\[/\&mpc->eqs[/' \
-	    -e 's/&mpc->ac->eqs\[/\&mpc->eqs[/' \
-	    -e 's/cq->comp_vector % gc->max_num_queues/cq->comp_vector % mpc->num_queues/' \
-	    -e 's/send_cq->comp_vector % gd->gdma_context->max_num_queues/send_cq->comp_vector % mpc->num_queues/' \
-	    "$qp_source" > "$TMP/qp.c"
+	if grep -Eq 'mc->eqs|mpc->ac->eqs' "$qp_source"; then
+		sed -e 's/&mc->eqs\[/\&mpc->eqs[/' \
+		    -e 's/&mpc->ac->eqs\[/\&mpc->eqs[/' \
+		    -e 's/&mpc->eqs\[\([^]]*\)\]/\&mpc->eqs[(\1) % mpc->num_queues]/' \
+		    "$qp_source" > "$TMP/qp.c"
+	else
+		cp "$qp_source" "$TMP/qp.c"
+	fi
 	if grep -Eq 'mc->eqs|mpc->ac->eqs' "$TMP/qp.c"; then
 		echo "Unrecognized historical EQ access in $qp_source" >&2
 		exit 1
