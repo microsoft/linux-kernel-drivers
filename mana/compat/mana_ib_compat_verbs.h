@@ -4,6 +4,8 @@
 
 #include <rdma/ib_verbs.h>
 
+struct ib_dmah;
+
 #if !MANA_IB_HAVE_UDP_SPORT
 static inline u16 rdma_get_udp_sport(u32 fl, u32 lqpn, u32 rqpn)
 {

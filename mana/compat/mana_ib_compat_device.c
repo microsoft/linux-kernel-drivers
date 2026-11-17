@@ -21,29 +21,25 @@ static int mana_ib_compat_create_cq(struct ib_cq *cq,
 #define mana_ib_create_cq mana_ib_compat_create_cq
 #endif
 
-#if MANA_IB_REG_MR_DMAH
+#if !MANA_IB_REG_MR_DMAH
 static struct ib_mr *mana_ib_compat_reg_user_mr(struct ib_pd *pd, u64 start,
-		u64 length, u64 iova, int access, struct ib_dmah *dmah,
-		struct ib_udata *udata)
+		u64 length, u64 iova, int access, struct ib_udata *udata)
 {
-	if (dmah)
-		return ERR_PTR(-EOPNOTSUPP);
-	return mana_ib_reg_user_mr(pd, start, length, iova, access, udata);
+	return mana_ib_reg_user_mr(pd, start, length, iova, access, NULL, udata);
 }
 #define mana_ib_reg_user_mr mana_ib_compat_reg_user_mr
 #endif
 
-#if MANA_IB_DMABUF_DMAH
+#if !MANA_IB_DMABUF_DMAH && MANA_IB_DMABUF_ATTRS
 static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
-		u64 length, u64 iova, int fd, int access, struct ib_dmah *dmah,
+		u64 length, u64 iova, int fd, int access,
 		struct uverbs_attr_bundle *attrs)
 {
-	if (dmah)
-		return ERR_PTR(-EOPNOTSUPP);
-	return mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access, attrs);
+	return mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access,
+					NULL, attrs);
 }
 #define mana_ib_reg_user_mr_dmabuf mana_ib_compat_reg_dmabuf
-#elif !MANA_IB_DMABUF_ATTRS
+#elif !MANA_IB_DMABUF_DMAH && !MANA_IB_DMABUF_ATTRS
 static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
 		u64 length, u64 iova, int fd, int access, struct ib_udata *udata)
 {
@@ -52,7 +48,8 @@ static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
 
 	if (udata)
 		attrs.driver_udata = *udata;
-	mr = mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access, &attrs);
+	mr = mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access,
+				       NULL, &attrs);
 	if (udata)
 		*udata = attrs.driver_udata;
 	return mr;
