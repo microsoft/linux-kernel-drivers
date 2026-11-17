@@ -211,6 +211,8 @@ configure_mana_ib() {
 #endif' ""
 
 	probe_mana_ib MANA_IB_HAVE_ITER_HEADER '#include <rdma/iter.h>'
+	probe_mana_ib MANA_IB_HAVE_NETDEV_PUT '#include <linux/netdevice.h>
+static typeof(&netdev_put) helper __used = &netdev_put;'
 	probe_mana_ib MANA_IB_HAVE_DRIVER_ID '#include <rdma/ib_verbs.h>
 static enum rdma_driver_id id __used = RDMA_DRIVER_MANA;'
 	probe_mana_ib MANA_IB_CQ_CREATE_ATTRS '#include <rdma/ib_verbs.h>
