@@ -13,4 +13,23 @@ static inline u16 rdma_get_udp_sport(u32 fl, u32 lqpn, u32 rqpn)
 }
 #endif
 
+#if !MANA_IB_HAVE_STAT_DESC
+struct rdma_stat_desc {
+	const char *name;
+};
+
+static inline struct rdma_hw_stats *
+mana_ib_alloc_hw_stats(const struct rdma_stat_desc *desc, int count,
+		      unsigned long lifespan)
+{
+	/* Name-only descriptors have the old static names array's layout and
+	 * lifetime; no temporary name allocation may outlive this call.
+	 */
+	BUILD_BUG_ON(sizeof(*desc) != sizeof(const char *));
+	return rdma_alloc_hw_stats_struct((const char * const *)desc,
+					 count, lifespan);
+}
+#define rdma_alloc_hw_stats_struct mana_ib_alloc_hw_stats
+#endif
+
 #endif
