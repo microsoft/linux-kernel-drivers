@@ -33,6 +33,33 @@ static struct ib_mr *mana_ib_compat_reg_user_mr(struct ib_pd *pd, u64 start,
 #define mana_ib_reg_user_mr mana_ib_compat_reg_user_mr
 #endif
 
+#if MANA_IB_DMABUF_DMAH
+static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
+		u64 length, u64 iova, int fd, int access, struct ib_dmah *dmah,
+		struct uverbs_attr_bundle *attrs)
+{
+	if (dmah)
+		return ERR_PTR(-EOPNOTSUPP);
+	return mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access, attrs);
+}
+#define mana_ib_reg_user_mr_dmabuf mana_ib_compat_reg_dmabuf
+#elif !MANA_IB_DMABUF_ATTRS
+static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
+		u64 length, u64 iova, int fd, int access, struct ib_udata *udata)
+{
+	struct uverbs_attr_bundle attrs = {};
+	struct ib_mr *mr;
+
+	if (udata)
+		attrs.driver_udata = *udata;
+	mr = mana_ib_reg_user_mr_dmabuf(pd, start, length, iova, fd, access, &attrs);
+	if (udata)
+		*udata = attrs.driver_udata;
+	return mr;
+}
+#define mana_ib_reg_user_mr_dmabuf mana_ib_compat_reg_dmabuf
+#endif
+
 static const struct auxiliary_device_id mana_ib_compat_ids[] = {
 #if MANA_IB_LEGACY_ETH_CONTEXT && !MANA_IB_LEGACY_GDMA_OWNER
 	{ .name = "mana_compat.eth" },

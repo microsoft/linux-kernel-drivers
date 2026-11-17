@@ -86,7 +86,7 @@ obj-m += mana-ib-compat.o
 mana_ib_dir := driver/drivers/infiniband/hw/mana
 mana_ib_sources := $(filter-out device.c qp.c,$(notdir $(wildcard $(src)/$(mana_ib_dir)/*.c)))
 mana-ib-compat-y := $(addprefix $(mana_ib_dir)/,$(mana_ib_sources:.c=.o))
-mana-ib-compat-y += compat/mana_ib_compat_device.o compat/autogen/qp.o
+mana-ib-compat-y += compat/mana_ib_compat_device.o compat/autogen/qp.o compat/mana_ib_compat_umem.o
 $(addprefix $(obj)/,$(mana-ib-compat-y)): NOSTDINC_FLAGS += \
 	-I$(src)/driver/include/uapi
 mana_ib_cflags := -I$(src)/$(mana_ib_dir) \
