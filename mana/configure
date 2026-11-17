@@ -225,6 +225,10 @@ static u16 (*helper)(u32, u32, u32) __used = rdma_get_udp_sport;'
 	printf '#define MANA_IB_LEGACY_ETH_CONTEXT %s\n' "$val" >> "$RESULTS"
 	if grep -q 'mana_gd_register_device' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
 	printf '#define MANA_IB_LEGACY_GDMA_OWNER %s\n' "$val" >> "$RESULTS"
+	if grep -q 'struct uverbs_attr_bundle' "$srcdir/driver/drivers/infiniband/hw/mana/cq.c"; then val=1; else val=0; fi
+	printf '#define MANA_IB_SOURCE_CQ_ATTRS %s\n' "$val" >> "$RESULTS"
+	if grep -q 'attrs ?' "$srcdir/driver/drivers/infiniband/hw/mana/cq.c"; then val=1; else val=0; fi
+	printf '#define MANA_IB_SOURCE_CQ_KERNEL %s\n' "$val" >> "$RESULTS"
 	if grep -q '"mana.eth"' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
 	printf '#define MANA_IB_HAVE_ETH_AUX %s\n' "$val" >> "$RESULTS"
 
