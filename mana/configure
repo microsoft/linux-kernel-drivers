@@ -211,6 +211,10 @@ configure_mana_ib() {
 #endif' ""
 
 	probe_mana_ib MANA_IB_HAVE_ITER_HEADER '#include <rdma/iter.h>'
+	probe_mana_ib MANA_IB_HAVE_EMPTY_INPUT '#include <rdma/uverbs_ioctl.h>
+static typeof(&ib_is_udata_in_empty) helper __used = &ib_is_udata_in_empty;'
+	probe_mana_ib MANA_IB_HAVE_EMPTY_OUTPUT '#include <rdma/uverbs_ioctl.h>
+static typeof(&ib_respond_empty_udata) helper __used = &ib_respond_empty_udata;'
 	probe_mana_ib MANA_IB_HAVE_NETDEV_PUT '#include <linux/netdevice.h>
 static typeof(&netdev_put) helper __used = &netdev_put;'
 	probe_mana_ib MANA_IB_HAVE_DRIVER_ID '#include <rdma/ib_verbs.h>

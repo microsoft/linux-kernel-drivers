@@ -4,6 +4,27 @@
 
 #include <rdma/uverbs_ioctl.h>
 
+#if !MANA_IB_HAVE_EMPTY_INPUT
+static inline int ib_is_udata_in_empty(struct ib_udata *udata)
+{
+	int err;
+
+	if (!udata || !udata->inlen)
+		return 0;
+	err = copy_struct_from_user(NULL, 0, udata->inbuf, udata->inlen);
+	return err == -E2BIG ? -EOPNOTSUPP : err;
+}
+#endif
+
+#if !MANA_IB_HAVE_EMPTY_OUTPUT
+static inline int ib_respond_empty_udata(struct ib_udata *udata)
+{
+	if (udata && udata->outlen && clear_user(udata->outbuf, udata->outlen))
+		return -EFAULT;
+	return 0;
+}
+#endif
+
 #ifndef ib_copy_validate_udata_in
 static inline int mana_ib_copy_validate_udata(struct ib_udata *udata, void *req,
 					     size_t size, size_t minimum)
