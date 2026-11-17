@@ -227,6 +227,8 @@ static u16 (*helper)(u32, u32, u32) __used = rdma_get_udp_sport;'
 static struct rdma_stat_desc desc __used;'
 	probe_mana_ib MANA_IB_HAVE_DMABUF_PINNED '#include <rdma/ib_umem.h>
 static typeof(&ib_umem_dmabuf_get_pinned) helper __used = &ib_umem_dmabuf_get_pinned;'
+	probe_mana_ib MANA_IB_HAVE_UMEM_GET_VA '#include <rdma/ib_umem.h>
+static typeof(&ib_umem_get_va) helper __used = &ib_umem_get_va;'
 	probe_mana_ib MANA_IB_DMABUF_ATTRS '#include <rdma/ib_verbs.h>
 static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr_dmabuf),
 	struct ib_mr *(*)(struct ib_pd *, u64, u64, u64, int, int, struct uverbs_attr_bundle *)));'
