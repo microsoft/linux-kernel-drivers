@@ -17,9 +17,8 @@
 #       struct/prototype definitions. Placing it ahead of LINUXINCLUDE makes the
 #       captive driver truly captive: it always builds against its own vendored
 #       headers regardless of what the host kernel ships.
-#   * The umbrella mana_compat.h is force-included into every TU so the verbatim
-#     driver sources stay unedited; it pulls in the generated feature map and all
-#     the shims.
+#   * Each module has its own force-included compatibility umbrella. RDMA's
+#     flags and overlays must not change the Ethernet translation units.
 
 ifneq ($(MANA_COMPAT_PROBED),1)
 $(error mana-compat: invoke the top-level Makefile so the target kernel is re-probed)
@@ -29,10 +28,9 @@ NOSTDINC_FLAGS += -I$(src)/compat/backport-include
 NOSTDINC_FLAGS += -I$(src)/driver/include
 
 ccflags-y += -I$(src)/compat
-ccflags-y += -include $(src)/compat/mana_compat.h
 
 # The <net/net_shaper.h> overlay uses anonymous embedding of struct
-# net_device_ops to keep driver/mana_en.c byte-identical to upstream on
+# net_device_ops to keep the vendored mana_en.c byte-identical to upstream on
 # kernels < v6.13 (where struct net_device_ops has no .net_shaper_ops
 # member). -fplan9-extensions enables both the embed and the implicit
 # pointer conversion at `ndev->netdev_ops = &mana_devops`. Supported by
@@ -67,12 +65,31 @@ ccflags-y += -DMANA_COMPAT_VERSION=\"$(mana_pkg_version)\"
 obj-m += mana-compat.o
 
 mana-compat-objs := \
-	driver/gdma_main.o \
-	driver/hw_channel.o \
-	driver/mana_bpf.o \
-	driver/mana_en.o \
+	driver/drivers/net/ethernet/microsoft/mana/gdma_main.o \
+	driver/drivers/net/ethernet/microsoft/mana/hw_channel.o \
+	driver/drivers/net/ethernet/microsoft/mana/mana_bpf.o \
+	driver/drivers/net/ethernet/microsoft/mana/mana_en.o \
 	compat/mana_compat_ethtool_wrapper.o \
-	driver/shm_channel.o \
+	driver/drivers/net/ethernet/microsoft/mana/shm_channel.o \
 	compat/mana_compat_info.o \
 	compat/mana_compat_privflags.o \
 	compat/mana_compat_ethtool_ops.o
+
+$(foreach o,$(mana-compat-objs),$(eval CFLAGS_$(o) += -include $(src)/compat/mana_compat.h))
+
+ifeq ($(WITH_MANA_IB),1)
+ifneq ($(MANA_IB_PROBED),1)
+$(error mana_ib: invoke the checked Makefile to probe the target kernel)
+endif
+
+obj-m += mana-ib-compat.o
+mana_ib_dir := driver/drivers/infiniband/hw/mana
+mana_ib_sources := $(filter-out device.c,$(notdir $(wildcard $(src)/$(mana_ib_dir)/*.c)))
+mana-ib-compat-y := $(addprefix $(mana_ib_dir)/,$(mana_ib_sources:.c=.o))
+mana-ib-compat-y += compat/mana_ib_compat_device.o
+$(addprefix $(obj)/,$(mana-ib-compat-y)): NOSTDINC_FLAGS += \
+	-I$(src)/driver/include/uapi
+mana_ib_cflags := -I$(src)/$(mana_ib_dir) \
+	-include $(src)/compat/mana_ib_compat.h
+$(foreach o,$(mana-ib-compat-y),$(eval CFLAGS_$(o) += $(mana_ib_cflags)))
+endif

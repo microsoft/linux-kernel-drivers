@@ -4,8 +4,9 @@
 # MANA out-of-tree compat probe generator.
 #
 # Compile-tests the *target* kernel headers and emits
-# compat/autogen/mana_compat_autoconf.h with a complete MANA_HAVE_* map. The
-# umbrella requires that generated map; there is no version-based fallback.
+# compat/autogen/mana_compat_autoconf.h with a complete MANA_HAVE_* map, plus
+# mana_ib_compat_autoconf.h when --mana-ib is selected. Each compatibility
+# umbrella requires its generated map; there is no version-based fallback.
 #
 # This is the kernel-backports / ZFS-autoconf model: each probe builds a tiny
 # module object against $KDIR using the kernel's own build flags, so a feature
@@ -21,24 +22,30 @@ self=$(basename "$0")
 srcdir=$(cd "$(dirname "$0")" && pwd)
 
 KDIR=
-OUT="$srcdir/compat/autogen/mana_compat_autoconf.h"
+OUT=
 OUT_TMP=
+IB_OUT=
+IB_OUT_TMP=
 VERBOSE=0
+MANA_IB=0
 
 usage() {
 	cat <<EOF
-Usage: $self [--kerneldir DIR] [--out FILE] [--verbose]
+Usage: $self [--mana-ib] [--kerneldir DIR] [--out FILE] [--verbose]
 
+  --mana-ib        Probe Ethernet and RDMA, generating both compatibility headers
   --kerneldir DIR  Kernel build tree to probe
                    (default: /lib/modules/\$(uname -r)/build)
-  --out FILE       Output autoconf header
-                   (default: compat/autogen/mana_compat_autoconf.h)
+  --out FILE       Override the Ethernet header, or the RDMA header with --mana-ib
+                   (default: compat/autogen/mana_compat_autoconf.h for Ethernet,
+                    compat/autogen/mana_ib_compat_autoconf.h for RDMA)
   --verbose        Echo each probe result to stderr
 EOF
 }
 
 while [ $# -gt 0 ]; do
 	case "$1" in
+	--mana-ib) MANA_IB=1; shift ;;
 	--kerneldir) KDIR=$2; shift 2 ;;
 	--kerneldir=*) KDIR=${1#*=}; shift ;;
 	--out) OUT=$2; shift 2 ;;
@@ -52,13 +59,37 @@ done
 if [ -z "$KDIR" ]; then
 	KDIR="/lib/modules/$(uname -r)/build"
 fi
+if [ "$MANA_IB" = 1 ]; then
+	IB_OUT=${OUT:-"$srcdir/compat/autogen/mana_ib_compat_autoconf.h"}
+	OUT="$srcdir/compat/autogen/mana_compat_autoconf.h"
+else
+	OUT=${OUT:-"$srcdir/compat/autogen/mana_compat_autoconf.h"}
+fi
+
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/mana-conf.XXXXXX")
+trap 'rm -rf "$TMP"; rm -f "$OUT_TMP" "$IB_OUT_TMP"' EXIT HUP INT TERM
+mkdir -p "$(dirname "$OUT")"
+if [ "$MANA_IB" = 1 ]; then
+	mkdir -p "$(dirname "$IB_OUT")"
+	if [ "$(cd "$(dirname "$OUT")" && pwd -P)/$(basename "$OUT")" = \
+	     "$(cd "$(dirname "$IB_OUT")" && pwd -P)/$(basename "$IB_OUT")" ]; then
+		echo "$self: Ethernet and RDMA output headers must be different files." >&2
+		exit 2
+	fi
+fi
+if [ "$MANA_IB" = 1 ] && [ -f "$IB_OUT" ]; then
+	cp -p "$IB_OUT" "$TMP/previous"
+fi
 
 # Invalidate any map produced for a previous kernel before attempting the new
 # probe. A failed configure must never leave stale feature decisions grafted
 # into a later direct kbuild invocation.
-mkdir -p "$(dirname "$OUT")"
 OUT_TMP="$OUT.tmp.$$"
 rm -f "$OUT" "$OUT_TMP"
+if [ "$MANA_IB" = 1 ]; then
+	IB_OUT_TMP="$IB_OUT.tmp.$$"
+	rm -f "$IB_OUT" "$IB_OUT_TMP"
+fi
 
 if [ ! -e "$KDIR/Makefile" ]; then
 	echo "$self: '$KDIR' does not look like a kernel build tree (no Makefile)." >&2
@@ -68,9 +99,6 @@ fi
 
 # Normalise to an absolute path for the out-of-tree build.
 KDIR=$(cd "$KDIR" && pwd)
-
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/mana-conf.XXXXXX")
-trap 'rm -rf "$TMP"; rm -f "$OUT_TMP"' EXIT HUP INT TERM
 
 build=$TMP/build
 mkdir -p "$build"
@@ -92,9 +120,11 @@ compile_test() {
 	fi
 	{
 		printf '%s\n' "$_headers"
-		printf 'static void mana_conftest(void)\n{\n'
-		printf '%s\n' "$_body"
-		printf '}\n'
+		if [ -n "$_body" ]; then
+			printf 'static void mana_conftest(void)\n{\n'
+			printf '%s\n' "$_body"
+			printf '}\n'
+		fi
 		printf 'MODULE_LICENSE("GPL");\n'
 	} > "$build/probe.c"
 
@@ -161,6 +191,37 @@ require() {
 	fi
 	[ "$VERBOSE" = 1 ] && printf '  %-38s %s\n' "require:$_desc" ok >&2
 	return 0
+}
+
+probe_mana_ib() {
+	probe "$1" "#include <linux/module.h>
+$2" ""
+}
+
+configure_mana_ib() {
+	RESULTS=$TMP/rdma-results
+	: > "$RESULTS"
+	printf '%s\n' 'ccflags-y += -Werror' >> "$build/Kbuild"
+
+	require "CONFIG_INFINIBAND and CONFIG_INFINIBAND_USER_MEM" \
+'#include <linux/module.h>
+#include <rdma/ib_verbs.h>
+#if !IS_ENABLED(CONFIG_INFINIBAND) || !IS_ENABLED(CONFIG_INFINIBAND_USER_MEM)
+#error RDMA core and userspace memory support are required
+#endif' ""
+
+	if grep -q '"mana.eth"' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
+	printf '#define MANA_IB_HAVE_ETH_AUX %s\n' "$val" >> "$RESULTS"
+	{
+		printf '%s\n' '/* Generated for this target kernel; do not edit. */'
+		printf '/* Target: %s */\n' "$KDIR"
+		printf '/* %s */\n' "$(cksum "$KDIR/.config" "$KDIR/Module.symvers")"
+		printf '%s\n' '#define MANA_IB_COMPAT_GENERATED 1'
+		cat "$RESULTS"
+	} > "$IB_OUT_TMP"
+	if cmp -s "$TMP/previous" "$IB_OUT_TMP"; then
+		touch -r "$TMP/previous" "$IB_OUT_TMP"
+	fi
 }
 
 [ "$VERBOSE" = 1 ] && echo "$self: checking hard prerequisites" >&2 || :
@@ -438,6 +499,14 @@ probe_old_new MANA_HAVE_NET_DIM_SAMPLE_PTR \
 	echo
 	echo '#endif /* MANA_COMPAT_AUTOCONF_H */'
 } > "$OUT_TMP"
-mv -f "$OUT_TMP" "$OUT"
 
+if [ "$MANA_IB" = 1 ]; then
+	configure_mana_ib
+fi
+
+mv -f "$OUT_TMP" "$OUT"
 echo "$self: wrote $OUT"
+if [ "$MANA_IB" = 1 ]; then
+	mv -f "$IB_OUT_TMP" "$IB_OUT"
+	echo "$self: wrote $IB_OUT"
+fi

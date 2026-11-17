@@ -41,7 +41,7 @@
  * probe with byte-identical content. The staging-then-publish pattern means
  * no locks and no ready-flag are needed even with concurrent multi-device
  * probing: see the concurrency-model comment in mana_compat_ethtool_ops.c.
- * This keeps driver/mana_ethtool.c much closer to verbatim: the priv-flags
+ * This keeps the vendored mana_ethtool.c much closer to verbatim: the priv-flags
  * wiring, the sset/strings wrappers, and the get_rxnfc fallback body all
  * leave the driver body entirely.
  *

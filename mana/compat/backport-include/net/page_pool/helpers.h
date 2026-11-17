@@ -38,7 +38,7 @@
  * the END of this file, after the wrapper's own definition, so the wrapper
  * itself still resolves to the kernel's real struct and function. They are
  * effective for the rest of the translation unit; no kernel header included
- * by driver/mana_en.c after <net/page_pool/helpers.h> mentions
+ * by the vendored mana_en.c after <net/page_pool/helpers.h> mentions
  * `page_pool_params`, so the rename is contained.
  *
  * Detection uses MANA_HAVE_* (from configure/version), never __has_include:

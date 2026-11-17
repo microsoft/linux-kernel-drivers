@@ -146,7 +146,7 @@ enum {
  *      .net_shaper_ops slot lies past `sizeof(struct net_device_ops)` and is
  *      never touched by the kernel.
  *
- * With this in place, driver/mana_en.c stays byte-identical to upstream —
+ * With this in place, the vendored mana_en.c stays byte-identical to upstream —
  * no marked hunk in the driver body is needed for the ops-table registration.
  */
 #if !MANA_HAVE_NET_SHAPER

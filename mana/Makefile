@@ -5,9 +5,16 @@
 # the target kernel's current headers and configuration.
 
 KDIR ?= /lib/modules/$(shell uname -r)/build
+WITH_MANA_IB ?= 0
+ifneq ($(WITH_MANA_IB),0)
+ifneq ($(WITH_MANA_IB),1)
+$(error WITH_MANA_IB must be 0 or 1)
+endif
+endif
 PWD  := $(shell pwd)
 
-AUTOCONF := compat/autogen/mana_compat_autoconf.h
+AUTOCONF := compat/autogen/mana_compat_autoconf.h \
+            compat/autogen/mana_ib_compat_autoconf.h
 
 # --- Universal DKMS source set ------------------------------------------
 # The files shipped to /usr/src/<module>-<version>/ on the target so DKMS
@@ -17,11 +24,14 @@ DKMS_SRC := Kbuild Makefile configure source-version package-revision \
 
 .PHONY: all
 all: config
-	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 modules
+	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 MANA_IB_PROBED=$(WITH_MANA_IB) WITH_MANA_IB=$(WITH_MANA_IB) modules
+ifeq ($(WITH_MANA_IB),0)
+	rm -f mana-ib-compat.ko
+endif
 
 .PHONY: config
 config:
-	sh $(PWD)/configure --kerneldir $(KDIR)
+	+sh $(PWD)/configure $(if $(filter 1,$(WITH_MANA_IB)),--mana-ib) --kerneldir "$(KDIR)"
 
 # Print the auto-derived package version
 # (<MANA internal>+linux<source>+compat<rev>).
@@ -79,7 +89,7 @@ tarball:
 	stage=$$(mktemp -d); trap 'rm -rf "$$stage"' EXIT; \
 	mkdir -p "$$stage/mana-compat-$$v"; \
 	cp -a $(DKMS_SRC) "$$stage/mana-compat-$$v"/; \
-	find "$$stage/mana-compat-$$v/compat/autogen" -type f ! -name '.gitkeep' -delete 2>/dev/null || true; \
+	find "$$stage/mana-compat-$$v/compat" -path '*/autogen/*' -type f ! -name '.gitkeep' -delete; \
 	find "$$stage/mana-compat-$$v" \( -name '*.o' -o -name '*.ko' -o -name '*.mod' \
 		-o -name '*.mod.c' -o -name '*.cmd' -o -name '.*.cmd' -o -name '*.d' \
 		-o -name '*.symvers' -o -name 'modules.order' \) -delete 2>/dev/null || true; \
@@ -93,7 +103,7 @@ tarball:
 
 .PHONY: clean
 clean:
-	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 clean
+	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 MANA_IB_PROBED=1 WITH_MANA_IB=1 clean
 	rm -f $(AUTOCONF)
 
 .PHONY: distclean
