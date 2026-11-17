@@ -225,6 +225,23 @@ static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr),
 	printf '#define MANA_IB_LEGACY_GDMA_OWNER %s\n' "$val" >> "$RESULTS"
 	if grep -q '"mana.eth"' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
 	printf '#define MANA_IB_HAVE_ETH_AUX %s\n' "$val" >> "$RESULTS"
+
+	qp_source="$srcdir/driver/drivers/infiniband/hw/mana/qp.c"
+	qp_output="$srcdir/compat/autogen/qp.c"
+	# Historical raw/RSS QPs used adapter-wide EQs. The paired MANA owns them
+	# per port, and only num_queues entries exist (not max_num_queues).
+	sed -e 's/&mc->eqs\[/\&mpc->eqs[/' \
+	    -e 's/cq->comp_vector % gc->max_num_queues/cq->comp_vector % mpc->num_queues/' \
+	    -e 's/send_cq->comp_vector % gd->gdma_context->max_num_queues/send_cq->comp_vector % mpc->num_queues/' \
+	    "$qp_source" > "$TMP/qp.c"
+	if grep -q 'mc->eqs' "$TMP/qp.c"; then
+		echo "Unrecognized historical EQ access in $qp_source" >&2
+		exit 1
+	fi
+	if ! cmp -s "$TMP/qp.c" "$qp_output"; then
+		mv -f "$TMP/qp.c" "$qp_output"
+	fi
+
 	{
 		printf '%s\n' '/* Generated for this target kernel; do not edit. */'
 		printf '/* Target: %s */\n' "$KDIR"

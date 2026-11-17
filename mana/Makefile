@@ -104,9 +104,9 @@ tarball:
 .PHONY: clean
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 MANA_IB_PROBED=1 WITH_MANA_IB=1 clean
-	rm -f $(AUTOCONF)
+	rm -f $(AUTOCONF) compat/autogen/qp.c
 
 .PHONY: distclean
 distclean: clean
-	rm -f $(AUTOCONF)
+	rm -f $(AUTOCONF) compat/autogen/qp.c
 	rm -f mana-compat-installer-*.tar.gz
