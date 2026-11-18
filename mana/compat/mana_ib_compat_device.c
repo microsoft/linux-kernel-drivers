@@ -11,11 +11,7 @@ static int mana_ib_compat_create_cq(struct ib_cq *cq,
 	int ret;
 
 	if (!udata) {
-#if MANA_IB_SOURCE_CQ_KERNEL
 		return mana_ib_create_cq(cq, attr, NULL);
-#else
-		return -EOPNOTSUPP;
-#endif
 	}
 	attrs.driver_udata = *udata;
 	ret = mana_ib_create_cq(cq, attr, &attrs);
