@@ -2,15 +2,7 @@
 #include <linux/auxiliary_bus.h>
 #include "../driver/drivers/infiniband/hw/mana/mana_ib.h"
 
-#if MANA_IB_CQ_CREATE_ATTRS && !MANA_IB_SOURCE_CQ_ATTRS
-static int mana_ib_compat_create_cq(struct ib_cq *cq,
-				    const struct ib_cq_init_attr *attr,
-				    struct uverbs_attr_bundle *attrs)
-{
-	return mana_ib_create_cq(cq, attr, attrs ? &attrs->driver_udata : NULL);
-}
-#define mana_ib_create_cq mana_ib_compat_create_cq
-#elif !MANA_IB_CQ_CREATE_ATTRS && MANA_IB_SOURCE_CQ_ATTRS
+#if !MANA_IB_CQ_CREATE_ATTRS
 static int mana_ib_compat_create_cq(struct ib_cq *cq,
 				    const struct ib_cq_init_attr *attr,
 				    struct ib_udata *udata)
