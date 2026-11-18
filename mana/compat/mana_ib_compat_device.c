@@ -61,47 +61,15 @@ static struct ib_mr *mana_ib_compat_reg_dmabuf(struct ib_pd *pd, u64 start,
 #endif
 
 static const struct auxiliary_device_id mana_ib_compat_ids[] = {
-#if MANA_IB_LEGACY_ETH_CONTEXT && !MANA_IB_LEGACY_GDMA_OWNER
-	{ .name = "mana_compat.eth" },
-#else
 	{ .name = "mana_compat.rdma" },
-#endif
-#if MANA_IB_HAVE_ETH_AUX
 	{ .name = "mana_compat.eth" },
-#endif
 	{}
 };
 MODULE_DEVICE_TABLE(auxiliary, mana_ib_compat_ids);
 
-#if MANA_IB_LEGACY_GDMA_OWNER
-/* The paired Ethernet parent registered GDMA before publishing this device. */
-static int mana_ib_parent_registered(struct gdma_dev *gd)
-{
-	return gd->dev_id.type == GDMA_DEVICE_MANA_IB ? 0 : -ENODEV;
-}
-
-static void mana_ib_parent_deregisters(struct gdma_dev *gd)
-{
-}
-#define mana_gd_register_device mana_ib_parent_registered
-#define mana_gd_deregister_device mana_ib_parent_deregisters
-#endif
-
-#if MANA_IB_LEGACY_ETH_CONTEXT && MANA_IB_LEGACY_GDMA_OWNER
-static int (*mana_ib_original_probe)(struct auxiliary_device *,
-				     const struct auxiliary_device_id *);
-
-static int mana_ib_compat_probe(struct auxiliary_device *adev,
-				const struct auxiliary_device_id *id);
-#endif
-
 static void mana_ib_fixup_driver(struct auxiliary_driver *driver)
 {
 	driver->id_table = mana_ib_compat_ids;
-#if MANA_IB_LEGACY_ETH_CONTEXT && MANA_IB_LEGACY_GDMA_OWNER
-	mana_ib_original_probe = driver->probe;
-	driver->probe = mana_ib_compat_probe;
-#endif
 }
 
 /* Keep the original table for source fidelity but advertise only our pair. */
@@ -125,21 +93,3 @@ static void mana_ib_fixup_driver(struct auxiliary_driver *driver)
 #include "../driver/drivers/infiniband/hw/mana/device.c"
 #pragma pop_macro("MODULE_DEVICE_TABLE")
 
-#if MANA_IB_LEGACY_ETH_CONTEXT && MANA_IB_LEGACY_GDMA_OWNER
-static int mana_ib_compat_probe(struct auxiliary_device *adev,
-				const struct auxiliary_device_id *id)
-{
-	struct mana_adev *madev = container_of(adev, struct mana_adev, adev);
-	struct gdma_dev *rnic = madev->mdev;
-	int ret;
-
-	/* Older probes expect the Ethernet context, then select gc->mana_ib.
-	 * Device binding holds the device lock; restore the parent's pointer
-	 * before returning on either the success or failure path.
-	 */
-	madev->mdev = &rnic->gdma_context->mana;
-	ret = mana_ib_original_probe(adev, id);
-	madev->mdev = rnic;
-	return ret;
-}
-#endif
