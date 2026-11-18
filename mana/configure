@@ -219,8 +219,6 @@ static_assert(__same_type(typeof(((struct ib_device_ops *)0)->create_cq),
 	probe_mana_ib MANA_IB_REG_MR_DMAH '#include <rdma/ib_verbs.h>
 static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr),
 	struct ib_mr *(*)(struct ib_pd *, u64, u64, u64, int, struct ib_dmah *, struct ib_udata *)));'
-	if grep -q 'struct mana_cfg_rx_steer_req \*' "$srcdir/driver/drivers/infiniband/hw/mana/qp.c"; then val=1; else val=0; fi
-	printf '#define MANA_IB_SOURCE_RX_STEER_V1 %s\n' "$val" >> "$RESULTS"
 	if grep -q '"mana.eth"' "$srcdir/driver/drivers/infiniband/hw/mana/device.c"; then val=1; else val=0; fi
 	printf '#define MANA_IB_HAVE_ETH_AUX %s\n' "$val" >> "$RESULTS"
 	{

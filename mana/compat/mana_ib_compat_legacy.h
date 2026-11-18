@@ -12,29 +12,6 @@
 #define MANA_INDIRECT_TABLE_SIZE 64
 #endif
 
-/* V1 wire layout, removed from Ethernet headers after the V2 transition. */
-struct mana_cfg_rx_steer_req {
-	struct gdma_req_hdr hdr;
-	mana_handle_t vport;
-	u16 num_indir_entries;
-	u16 indir_tab_offset;
-	u32 rx_enable;
-	u32 rss_enable;
-	u8 update_default_rxobj;
-	u8 update_hashkey;
-	u8 update_indir_tab;
-	u8 reserved;
-	mana_handle_t default_rxobj;
-	u8 hashkey[MANA_HASH_KEY_SIZE];
-};
-
-#if MANA_IB_SOURCE_RX_STEER_V1
-struct mana_ib_v1_rx_steer_resp {
-	struct gdma_resp_hdr hdr;
-};
-#define mana_cfg_rx_steer_resp mana_ib_v1_rx_steer_resp
-#endif
-
 static inline int mana_ib_compat_cfg_vport(struct mana_port_context *apc,
 					  u32 pd, u32 doorbell)
 {
