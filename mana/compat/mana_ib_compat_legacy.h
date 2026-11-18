@@ -4,8 +4,6 @@
 
 #include <net/mana/mana.h>
 
-typedef u64 gdma_obj_handle_t;
-
 /* Preserve the limits used by the original 0266a177631d driver. */
 #ifndef MAX_SEND_BUFFERS_PER_QUEUE
 #define MAX_SEND_BUFFERS_PER_QUEUE 256
