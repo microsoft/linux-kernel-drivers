@@ -4,11 +4,6 @@
 
 #include <net/mana/mana.h>
 
-/* Preserve the original fixed indirection-table limit. */
-#ifndef MANA_INDIRECT_TABLE_SIZE
-#define MANA_INDIRECT_TABLE_SIZE 64
-#endif
-
 static inline int mana_ib_compat_cfg_vport(struct mana_port_context *apc,
 					  u32 pd, u32 doorbell)
 {
