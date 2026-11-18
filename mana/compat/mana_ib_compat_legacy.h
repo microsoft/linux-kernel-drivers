@@ -4,10 +4,7 @@
 
 #include <net/mana/mana.h>
 
-/* Preserve the limits used by the original 0266a177631d driver. */
-#ifndef MAX_SEND_BUFFERS_PER_QUEUE
-#define MAX_SEND_BUFFERS_PER_QUEUE 256
-#endif
+/* Preserve the original fixed indirection-table limit. */
 #ifndef MANA_INDIRECT_TABLE_SIZE
 #define MANA_INDIRECT_TABLE_SIZE 64
 #endif
