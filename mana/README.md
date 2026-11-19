@@ -3,7 +3,7 @@
 An out-of-tree, DKMS-installable build of Microsoft's MANA (Microsoft Azure
 Network Adapter) ethernet driver that builds and loads across a range of kernels
 **from a single, verbatim copy of the upstream MANA driver** (currently vendored
-from tip, **v7.1-rc7**; see `source-version`).
+from **v7.2-rc4**, also used by the optional RDMA companion; see `source-version`).
 
 The design goal is a **captive, naive driver** paired with a **rich glue layer**:
 
@@ -46,11 +46,14 @@ cannot replace the in-tree driver at runtime without a custom kernel image.
 
 ```
 mana/
-├─ driver/                         VERBATIM upstream MANA driver (do not edit)
-│  ├─ *.c                          gdma_main, hw_channel, mana_bpf, mana_en,
+├─ driver/                         upstream sources, using kernel-relative paths (do not edit)
+│  ├─ drivers/net/ethernet/microsoft/mana/
+│  │  └─ *.c                      gdma_main, hw_channel, mana_bpf, mana_en,
 │  │                               mana_ethtool, shm_channel
-│  └─ include/net/mana/*.h         gdma.h, hw_channel.h, mana.h,
-│                                  mana_auxiliary.h, shm_channel.h
+│  ├─ drivers/infiniband/hw/mana/  paired RDMA sources
+│  └─ include/
+│     ├─ net/mana/*.h              shared Ethernet/GDMA headers
+│     └─ uapi/rdma/mana-abi.h      RDMA userspace ABI
 ├─ compat/
 │  ├─ mana_compat.h                umbrella, force-included via Kbuild -include
 │  ├─ autogen/                     ./configure writes mana_compat_autoconf.h here
@@ -60,10 +63,14 @@ mana/
 │  ├─ mana_compat_privflags.{c,h}  out-of-tree ethtool private-flags control plane
 │  ├─ mana_compat_dim.h           DIM (lib/dim) availability + net_dim() sig
 │  ├─ mana_compat_{alloc,kernel,cleanup,cpumask,pci,netdev,ethtool,xdp}.h
-│  └─ backport-include/net/        header OVERLAYS resolved before LINUXINCLUDE
-│     ├─ net_shaper.h              (so verbatim `#include <net/...>` keeps
-│     ├─ netdev_lock.h              working on kernels that lack the header)
-│     └─ page_pool/helpers.h
+│  ├─ mana_ib_compat.h             RDMA umbrella
+│  ├─ mana_ib_compat_*             RDMA glue and compile-test probes
+│  └─ backport-include/            header OVERLAYS resolved before LINUXINCLUDE
+│     ├─ rdma/iter.h
+│     └─ net/
+│        ├─ net_shaper.h
+│        ├─ netdev_lock.h
+│        └─ page_pool/helpers.h
 ├─ configure                       POSIX sh: compile-test probes -> autoconf.h
 ├─ scripts/
 │  ├─ gen-version.sh               derive <internal>+linux<source>+compat<rev>
@@ -78,8 +85,9 @@ mana/
 ## How the glue works
 
 1. **Force-include, never edit the body.** `Kbuild` adds
-   `-include compat/mana_compat.h` to every TU. The umbrella pulls in the
-   feature map, the export shim, and the per-area shims. The driver sources stay
+   `-include compat/mana_compat.h` to Ethernet TUs and
+   `-include compat/mana_ib_compat.h` to RDMA TUs. The umbrella pulls in the
+   feature map, the export shim, and the per-area shims. The driver sources must stay
    pristine.
 
 2. **Feature map: mandatory and regenerated.** The checked top-level `Makefile`
@@ -119,25 +127,29 @@ mana/
    the outer shim struct implicitly converts to the kernel-visible
    `struct net_device_ops` at the assignment site.
 
-### RDMA / InfiniBand (`mana_ib`) — not yet in scope
+### RDMA / InfiniBand (`mana_ib`) - optional paired build
 
 `configure` enforces upstream's target constraints (x86_64 or little-endian
 arm64, `CONFIG_PCI_MSI`, and `CONFIG_PCI_HYPERV`) and hard-requires the selected
 `CONFIG_AUXILIARY_BUS` and `CONFIG_PAGE_POOL` facilities. It fails early with a
 clear message if the target kernel lacks any of them.
 
-The captive `mana_en.c` keeps its auxiliary-bus RDMA plumbing and registers an
-`rdma` auxiliary device on every supported kernel. But the InfiniBand driver that
-binds it, `mana_ib`, is **not part of this package**, and the install blacklists
-it. The auxiliary device is named after the module: built as `mana-compat.ko` it
-is `mana_compat.rdma`, while in-tree `mana_ib` matches only `mana.rdma`, so it
-would not bind even if loaded. RDMA is therefore unavailable with the out-of-tree
-module today.
+Every build exports the private `mana_compat_*` symbols, including the default
+Ethernet-only build, so the paired RDMA module can be built afterward.
+From the repository root,
+`make -C mana WITH_MANA_IB=1 KDIR=/path/to/kernel` also builds
+`mana-ib-compat.ko`, which matches `mana_compat.rdma` and `mana_compat.eth`.
+It uses this Ethernet tree's headers and `Module.symvers`; in-tree `mana_ib`
+is not a substitute for the paired module.
+The Makefile runs `configure` once: the default probes Ethernet, while
+`configure --mana-ib --kerneldir /path/to/kernel` probes both Ethernet and RDMA
+and generates their separate compatibility headers. One Kbuild invocation
+then builds the selected modules together with shared modpost symbols; no
+prebuilt Ethernet module is required.
 
-> **Action item — pull `mana_ib` into scope.** Either vendor an out-of-tree
-> `mana_ib` whose match table targets `mana_compat.rdma`, or build the Ethernet
-> module under the `mana` name (which trades away the blacklist-based coexistence
-> that lets `mana-compat` take over the device). Tracked as future work.
+The DKMS installer defaults to Ethernet-only; `install.sh --with-mana-ib`
+installs the pair. Both modes blacklist the in-tree drivers. Compilation and
+packaging checks do not establish RDMA hardware compatibility.
 
 ## Detected features (`MANA_HAVE_*`)
 
@@ -209,6 +221,11 @@ into the module via `compat/mana_compat_info.c` (the captive body carries no
 `MODULE_VERSION` of its own), so `modinfo mana-compat | grep ^version` is a quick
 post-upgrade staleness check.
 
+Both modes use the same package version. The installer replaces any existing
+registration of that version before rebuilding, so a mode change does not
+reuse its cached modules. The selected `MANA_WITH_IB` value is saved in the
+staged `dkms.conf` for automatic kernel-update builds.
+
 ```sh
 make version          # print the derived version (0.1.1+linux7.1.0~rc7+compat3)
 make set-version      # write it into dkms.conf (run after a re-import)
@@ -237,7 +254,7 @@ Build on any Linux host with `make` and `tar`:
 ```sh
 cd mana
 make tarball
-# -> mana-compat-installer-<version>.tar.gz (~124 KB)
+# -> mana-compat-installer-<version>.tar.gz (contains both source sets)
 ```
 
 Install on the target:
@@ -245,6 +262,8 @@ Install on the target:
 ```sh
 tar xzf mana-compat-installer-*.tar.gz
 sudo sh install.sh
+# Or, instead, install Ethernet and its paired RDMA module:
+# sudo sh install.sh --with-mana-ib
 sudo reboot
 ```
 
@@ -263,8 +282,8 @@ sudo reboot
    `PRE_BUILD` hooks.
 4. Installs `/etc/modprobe.d/50-mana-compat.conf` to blacklist the
    in-tree `mana` and `mana_ib`.
-5. Installs `/etc/modules-load.d/mana-compat.conf` so `mana-compat`
-   autoloads at boot.
+5. Updates `/etc/modules-load.d/mana-compat.conf` so Ethernet and, when selected,
+   paired RDMA autoload at boot.
 6. Regenerates the initramfs (`update-initramfs -u`, `dracut --force`,
    or `mkinitcpio -p linux`, whichever the target uses) so the blacklist
    also holds at early boot — on the Debian default `MODULES=most` the
@@ -279,9 +298,16 @@ sudo sh uninstall.sh
 sudo reboot
 ```
 
-`uninstall.sh` reverses every step: `dkms remove` for each installed kernel,
-deletes `/usr/src/mana-compat-*`, removes the blacklist and autoload files,
-regenerates the initramfs.
+`uninstall.sh` removes every registered package version, deletes the installed
+source trees, removes the blacklist/autoload files and regenerates the
+initramfs. It attempts to unload RDMA before Ethernet.
+
+Re-running the installer without a flag, or with `--without-mana-ib`, selects
+Ethernet-only mode. Pass `--with-mana-ib` again to retain RDMA on installer-driven
+upgrades. Automatic DKMS kernel rebuilds retain the persisted mode without
+re-running the installer. Installer-driven builds target the running kernel
+and require its headers. Reboot after installing, changing modes or removing
+the package.
 
 Verify a successful install:
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Universal DKMS installer for the mana-compat out-of-tree driver.
+# Universal DKMS installer for MANA Ethernet and optional paired RDMA.
 #
 # One artifact for every supported LTS kernel from 5.15 through 6.18+, on
 # every distro that has (or can install) dkms -- Debian, Ubuntu, RHEL,
@@ -16,17 +16,33 @@
 #     package-revision, compat/, driver/, scripts/, README.md
 #
 # Usage:
-#   sudo sh install.sh            # install
+#   sudo sh install.sh                 # Ethernet only (also switches back)
+#   sudo sh install.sh --with-mana-ib  # Ethernet and paired RDMA
 #   sudo sh uninstall.sh          # remove
 #
-# The script is idempotent: re-running it upgrades in place if the tarball
-# version is newer than what dkms already tracks, or is a no-op otherwise.
+# Re-running selects the requested mode. The choice is persisted in the
+# installed dkms.conf, including for automatic builds after kernel updates.
 
 set -eu
 
 log()  { printf '%s\n' "  $*"; }
 warn() { printf '\033[33mWARN\033[0m: %s\n' "$*" >&2; }
 die()  { printf '\033[31mERROR\033[0m: %s\n' "$*" >&2; exit 1; }
+
+WITH_MANA_IB=0
+case "$#" in
+    0) ;;
+    1)
+        case "$1" in
+            --with-mana-ib) WITH_MANA_IB=1 ;;
+            --without-mana-ib) WITH_MANA_IB=0 ;;
+            --help|-h)
+                echo "Usage: $0 [--with-mana-ib|--without-mana-ib]"
+                exit 0 ;;
+            *) die "unknown option: $1" ;;
+        esac ;;
+    *) die "Usage: $0 [--with-mana-ib|--without-mana-ib]" ;;
+esac
 
 [ "$(id -u)" -eq 0 ] || die "must run as root (try: sudo sh install.sh)"
 
@@ -37,10 +53,12 @@ SRCDIR=$(find "$HERE" -maxdepth 1 -type d -name 'mana-compat-*' -print -quit)
 PKGVER=$(basename "$SRCDIR" | sed 's/^mana-compat-//')
 [ -n "$PKGVER" ] || die "could not derive package version from $SRCDIR"
 log "mana-compat installer, version $PKGVER"
+log "paired RDMA: $WITH_MANA_IB"
 
 # ---- 1. distro detection -------------------------------------------------
 
 if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
     . /etc/os-release
     DISTRO_ID="${ID:-unknown}"
     DISTRO_LIKE="${ID_LIKE:-}"
@@ -124,6 +142,7 @@ fi
 
 log "staging source under $DKMS_SRC"
 cp -a "$SRCDIR" "$DKMS_SRC"
+sed -i "s/^MANA_WITH_IB=.*/MANA_WITH_IB=$WITH_MANA_IB/" "$DKMS_SRC/dkms.conf"
 
 log "dkms add"
 dkms add -m mana-compat -v "$PKGVER"
@@ -137,6 +156,7 @@ dkms install -m mana-compat -v "$PKGVER" -k "$KVER" --force
 # ---- 4. blacklist in-tree mana + regenerate initramfs -------------------
 
 BLACKLIST=/etc/modprobe.d/50-mana-compat.conf
+mkdir -p /etc/modprobe.d /etc/modules-load.d
 if [ ! -f "$BLACKLIST" ]; then
     log "installing modprobe blacklist at $BLACKLIST"
     cat > "$BLACKLIST" <<'EOF'
@@ -163,10 +183,11 @@ fi
 # ---- 5. autoload at boot -----------------------------------------------
 
 LOAD_CONF=/etc/modules-load.d/mana-compat.conf
-if [ ! -f "$LOAD_CONF" ]; then
+{
     echo "mana_compat" > "$LOAD_CONF"
-    log "installed autoload at $LOAD_CONF"
-fi
+    if [ "$WITH_MANA_IB" = 1 ]; then echo "mana_ib_compat" >> "$LOAD_CONF"; fi
+}
+log "updated autoload at $LOAD_CONF"
 
 # ---- 6. summary --------------------------------------------------------
 
@@ -184,6 +205,9 @@ echo "    2. Or, if you need it live NOW without reboot (may fail if in-tree"
 echo "       mana is currently holding the device):"
 echo "         sudo modprobe -r mana_ib mana 2>/dev/null || true"
 echo "         sudo modprobe mana-compat"
+if [ "$WITH_MANA_IB" = 1 ]; then
+    echo "         sudo modprobe mana-ib-compat"
+fi
 echo
 echo "  verification after boot / modprobe:"
 echo "    lsmod | grep mana        # -> mana_compat"

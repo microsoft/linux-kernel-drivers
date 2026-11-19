@@ -99,14 +99,15 @@ tarball:
 	echo "  tarball: $(TARBALL)"; \
 	echo "  install on any Linux target with:"; \
 	echo "    tar xzf $$(basename $(TARBALL))"; \
-	echo "    sudo sh install.sh"
+	echo "    sudo sh install.sh                 # Ethernet only"; \
+	echo "    sudo sh install.sh --with-mana-ib  # Ethernet + paired RDMA"
 
 .PHONY: clean
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) MANA_COMPAT_PROBED=1 MANA_IB_PROBED=1 WITH_MANA_IB=1 clean
-	rm -f $(AUTOCONF) compat/autogen/qp.c
+	rm -f $(AUTOCONF)
 
 .PHONY: distclean
 distclean: clean
-	rm -f $(AUTOCONF) compat/autogen/qp.c
+	rm -f $(AUTOCONF)
 	rm -f mana-compat-installer-*.tar.gz

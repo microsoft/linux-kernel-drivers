@@ -239,27 +239,6 @@ static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr_dmabuf
 	probe_mana_ib MANA_IB_DMABUF_DMAH '#include <rdma/ib_verbs.h>
 static_assert(__same_type(typeof(((struct ib_device_ops *)0)->reg_user_mr_dmabuf),
 	struct ib_mr *(*)(struct ib_pd *, u64, u64, u64, int, int, struct ib_dmah *, struct uverbs_attr_bundle *)));'
-
-	qp_source="$srcdir/driver/drivers/infiniband/hw/mana/qp.c"
-	qp_output="$srcdir/compat/autogen/qp.c"
-	# Historical raw/RSS QPs used adapter-wide EQs. The paired MANA owns them
-	# per port, and only num_queues entries exist (not max_num_queues).
-	if grep -Eq 'mc->eqs|mpc->ac->eqs' "$qp_source"; then
-		sed -e 's/&mc->eqs\[/\&mpc->eqs[/' \
-		    -e 's/&mpc->ac->eqs\[/\&mpc->eqs[/' \
-		    -e 's/&mpc->eqs\[\([^]]*\)\]/\&mpc->eqs[(\1) % mpc->num_queues]/' \
-		    "$qp_source" > "$TMP/qp.c"
-	else
-		cp "$qp_source" "$TMP/qp.c"
-	fi
-	if grep -Eq 'mc->eqs|mpc->ac->eqs' "$TMP/qp.c"; then
-		echo "Unrecognized historical EQ access in $qp_source" >&2
-		exit 1
-	fi
-	if ! cmp -s "$TMP/qp.c" "$qp_output"; then
-		mv -f "$TMP/qp.c" "$qp_output"
-	fi
-
 	{
 		printf '%s\n' '/* Generated for this target kernel; do not edit. */'
 		printf '/* Target: %s */\n' "$KDIR"
