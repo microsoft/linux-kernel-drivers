@@ -44,11 +44,13 @@ else
     done
 fi
 
-# Currently-loaded module goes away too, so the running kernel stops using it.
-if lsmod | grep -q "^mana_compat "; then
-    log "unloading currently-running mana_compat module"
-    rmmod mana_compat 2>&1 || warn "rmmod failed (module in use?)"
-fi
+# Unload the RDMA companion before the Ethernet module it depends on.
+for module in mana_ib_compat mana_compat; do
+    if lsmod | grep -q "^$module "; then
+        log "unloading currently-running $module module"
+        rmmod "$module" 2>&1 || warn "rmmod failed (module in use?)"
+    fi
+done
 
 # Blacklist + autoload
 for f in /etc/modprobe.d/50-mana-compat.conf /etc/modprobe.d/mana-oot.conf \

@@ -1,0 +1,26 @@
+/* SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause */
+#ifndef MANA_IB_COMPAT_EXPORTS_H
+#define MANA_IB_COMPAT_EXPORTS_H
+
+#define mana_gd_send_request mana_compat_gd_send_request
+#define mana_gd_wq_ring_doorbell mana_compat_gd_wq_ring_doorbell
+#define mana_gd_ring_cq mana_compat_gd_ring_cq
+#define mana_gd_ring_dim mana_compat_gd_ring_dim
+#define mana_gd_destroy_dma_region mana_compat_gd_destroy_dma_region
+#define mana_gd_create_mana_eq mana_compat_gd_create_mana_eq
+#define mana_gd_create_mana_wq_cq mana_compat_gd_create_mana_wq_cq
+#define mana_gd_destroy_queue mana_compat_gd_destroy_queue
+#define mana_gd_post_work_request mana_compat_gd_post_work_request
+#define mana_gd_poll_cq mana_compat_gd_poll_cq
+#define mana_gd_put_gic mana_compat_gd_put_gic
+#define mana_gd_get_gic mana_compat_gd_get_gic
+#define mana_uncfg_vport mana_compat_uncfg_vport
+#define mana_cfg_vport mana_compat_cfg_vport
+#define mana_create_wq_obj mana_compat_create_wq_obj
+#define mana_destroy_wq_obj mana_compat_destroy_wq_obj
+#define mana_destroy_eq mana_compat_destroy_eq
+#define mana_create_eq mana_compat_create_eq
+#define mana_disable_vport_rx mana_compat_disable_vport_rx
+#define mana_get_primary_netdev mana_compat_get_primary_netdev
+
+#endif

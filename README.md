@@ -1,8 +1,8 @@
 # Microsoft MANA out-of-tree driver
 
-| Directory | Package | What it is |
-|-----------|---------|------------|
-| [`mana/`](mana/README.md) | `mana-compat` | MANA (Microsoft Azure Network Adapter) ethernet driver — one verbatim upstream copy that builds across Linux LTS kernels via a configure-driven glue layer |
+| Directory | Package | Produced modules | What it is |
+|-----------|---------|------------------|------------|
+| [`mana/`](mana/README.md) | `mana-compat` | `mana-compat.ko` (Ethernet), `mana-ib-compat.ko` (RDMA with `WITH_MANA_IB=1`) | Unified MANA Ethernet and optional RDMA source package, with kernel-shaped sources and separate compatibility glue |
 
 See the README in subdir for what it provides, how it works, and how to build,
 install, and maintain it.

@@ -4,7 +4,7 @@
  * ethtool_ops shim (declarations).
  *
  * Shared between mana_compat_ethtool_wrapper.c (which #includes the pristine
- * driver/mana_ethtool.c against this shim view) and mana_compat_ethtool_ops.c
+ * the vendored mana_ethtool.c against this shim view) and mana_compat_ethtool_ops.c
  * (whose runtime interceptor reads the kernel-visible embed of ndev->ethtool_ops).
  * Defining the shim once in a header keeps the two TUs in lockstep -- any
  * field added here is visible to both.

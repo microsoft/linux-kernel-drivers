@@ -5,7 +5,8 @@ experimental prototype) on a clean target and confirm the driver is running.
 To build the installer tarball yourself, see [README.md](README.md) →
 *Building and installing*.
 
-`mana-compat` is the out-of-tree MANA Ethernet driver. Distribution is
+`mana-compat` packages the out-of-tree MANA Ethernet driver and optional paired
+RDMA driver (`mana-ib-compat`). Distribution is
 **source-only**: a single universal `.tar.gz` ships the DKMS source tree plus
 a distro-aware `install.sh`, and DKMS compiles the module on the target
 against the running kernel. `install.sh` also blacklists the in-tree
@@ -13,6 +14,13 @@ against the running kernel. `install.sh` also blacklists the in-tree
 initramfs — so a **reboot is required** for the out-of-tree driver to claim
 the device (the in-tree `mana` is bundled in the initramfs and binds at
 early boot until the rebuilt initramfs carries the blacklist).
+
+If the kernel has `CONFIG_MICROSOFT_MANA=y`, Ethernet MANA is built in
+(`modinfo -F filename mana` reports `(builtin)`), so the module blacklist
+cannot disable it. Boot with `initcall_blacklist=mana_driver_init` to prevent
+the built-in driver from registering before loading the compatibility pair.
+Use a recoverable test boot first; retain a normal boot entry without this
+parameter in case networking fails.
 
 ## Any Linux distro with (or that can install) DKMS
 
@@ -28,6 +36,8 @@ tar xzf mana-compat-installer-*.tar.gz
 #     - install /etc/modules-load.d/mana-compat.conf (autoload),
 #     - regenerate the initramfs.
 sudo sh install.sh
+# To install Ethernet plus paired RDMA, use this instead:
+# sudo sh install.sh --with-mana-ib
 
 # 3. Reboot.
 sudo reboot
@@ -35,7 +45,7 @@ sudo reboot
 
 If the kernel build tree for the running kernel is not installed and the
 installer's auto-install of headers fails, `dkms build` will error out.
-Install the headers by hand and rerun `install.sh` — it is idempotent:
+Install the headers by hand and rerun `install.sh` with the desired mode:
 
 ```sh
 # Debian / Ubuntu:
@@ -44,6 +54,22 @@ sudo apt-get install linux-headers-$(uname -r)
 sudo tdnf install kernel-devel-$(uname -r)   # or: dnf install ...
 sudo sh install.sh
 ```
+
+### RDMA selection and upgrades
+
+Installation is Ethernet-only by default. Use `--with-mana-ib` to build and
+install both drivers from this package.
+
+The installer saves your choice in the installed `dkms.conf`:
+`MANA_WITH_IB=1` enables RDMA; `0` selects Ethernet only. This setting controls
+the module list and the build command (`MAKE[0]`), so automatic kernel updates
+rebuild the same drivers.
+
+When rerunning the installer, pass `--with-mana-ib` again to keep RDMA.
+Omitting it (or using `--without-mana-ib`) switches to Ethernet only.
+The installer replaces any registration of the same package version and
+builds for the running kernel. Keep its kernel headers installed.
+Reboot after installation to activate the selected drivers together.
 
 ## Distro-specific gotcha to know
 
@@ -118,6 +144,10 @@ on module reload or reboot, so set it per test run.
 
 ## Removal
 
+If you added `initcall_blacklist=mana_driver_init`, remove it from the
+bootloader configuration and regenerate the boot menu before rebooting,
+so the built-in MANA driver can initialize again.
+
 ```sh
 tar xzf mana-compat-installer-*.tar.gz   # if you no longer have the extracted tree
 sudo sh uninstall.sh                     # dkms remove, blacklist off, initramfs regen
@@ -129,4 +159,4 @@ sudo reboot                              # restores the in-tree driver
 - The loaded module is **`mana_compat`** (a distinct `.ko`), intentionally not
   named `mana`, so the in-tree blacklist does not catch it. It binds the same
   PCI device the in-tree driver would.
-- **Ethernet only** — RDMA / InfiniBand (`mana_ib`) is not included.
+- **Ethernet-only by default**; `--with-mana-ib` adds **`mana_ib_compat`**.

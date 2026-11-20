@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 /* Copyright (c) 2026, Microsoft Corporation. */
 /*
- * Wrapper TU that compiles driver/mana_ethtool.c against a shimmed view of
+ * Wrapper TU that compiles the vendored mana_ethtool.c against a shimmed view of
  * the kernel-owned ethtool structs, so the driver body stays byte-for-byte
  * upstream v7.1-rc7 -- no marked-hunk patch, no build-time source
  * transformation.
  *
  * This file is the ONLY compilation unit that ever preprocesses
- * driver/mana_ethtool.c. Kbuild lists compat/mana_compat_ethtool_wrapper.o
- * in mana-compat-objs (not driver/mana_ethtool.o).
+ * mana_ethtool.c. Kbuild lists compat/mana_compat_ethtool_wrapper.o
+ * in mana-compat-objs instead of the upstream object.
  *
  * Order-of-operations MATTERS here:
  *
@@ -116,7 +116,7 @@
 
 /* --- (4) compile the pristine upstream body ------------------------------- */
 
-#include "../driver/mana_ethtool.c"
+#include "../driver/drivers/net/ethernet/microsoft/mana/mana_ethtool.c"
 
 /* --- (5) OOT-augmented ethtool ops that need driver-body-static access ---- */
 /*

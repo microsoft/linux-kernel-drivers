@@ -9,7 +9,7 @@
  * and cannot be shimmed (it is a netlink-core attribute, not an in-kernel
  * inline). It toggles exactly the same device state the native knob would --
  * mana_port_context::cqe_coalescing_enable -- and is wired into the captive
- * ethtool ops via small marked hunks in driver/mana_ethtool.c.
+ * ethtool ops via small marked hunks in the vendored mana_ethtool.c.
  *
  * This lives in its own translation unit so it can include the vendored driver
  * headers (for mana_port_context and mana_config_rss). The umbrella header,
