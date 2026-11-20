@@ -39,8 +39,11 @@ on an Azure VM with MANA hardware. The ethtool conformance suite reports
 **PASS 36 / SKIP 1 / FAIL 0** on all five. Also validated on distro derivatives
 of two of those LTS lines: **Debian 13** (6.12), **Azure Linux 3** (6.6). Also
 builds cleanly on **Ubuntu Jammy** (Azure 6.8) and **Ubuntu Noble** (Azure
-6.17), but those distro kernels ship `mana=y` (compiled-in) so the OOT module
-cannot replace the in-tree driver at runtime without a custom kernel image.
+6.17). Those distro kernels ship `CONFIG_MICROSOFT_MANA=y` (built in), so
+module blacklisting alone cannot disable the in-tree driver. Booting with
+`initcall_blacklist=mana_driver_init` suppresses its initialization; the OOT
+module uses a distinct initcall name and can load without a custom kernel
+image. See [INSTALL.md](INSTALL.md) for boot and recovery precautions.
 
 ## Layout
 

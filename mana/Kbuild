@@ -65,7 +65,7 @@ ccflags-y += -DMANA_COMPAT_VERSION=\"$(mana_pkg_version)\"
 obj-m += mana-compat.o
 
 mana-compat-objs := \
-	driver/drivers/net/ethernet/microsoft/mana/gdma_main.o \
+	compat/mana_compat_gdma_wrapper.o \
 	driver/drivers/net/ethernet/microsoft/mana/hw_channel.o \
 	driver/drivers/net/ethernet/microsoft/mana/mana_bpf.o \
 	driver/drivers/net/ethernet/microsoft/mana/mana_en.o \

@@ -15,6 +15,13 @@ initramfs — so a **reboot is required** for the out-of-tree driver to claim
 the device (the in-tree `mana` is bundled in the initramfs and binds at
 early boot until the rebuilt initramfs carries the blacklist).
 
+If the kernel has `CONFIG_MICROSOFT_MANA=y`, Ethernet MANA is built in
+(`modinfo -F filename mana` reports `(builtin)`), so the module blacklist
+cannot disable it. Boot with `initcall_blacklist=mana_driver_init` to prevent
+the built-in driver from registering before loading the compatibility pair.
+Use a recoverable test boot first; retain a normal boot entry without this
+parameter in case networking fails.
+
 ## Any Linux distro with (or that can install) DKMS
 
 ```sh
@@ -136,6 +143,10 @@ live (the port must be up) and is per-port runtime state — it resets to *off*
 on module reload or reboot, so set it per test run.
 
 ## Removal
+
+If you added `initcall_blacklist=mana_driver_init`, remove it from the
+bootloader configuration and regenerate the boot menu before rebooting,
+so the built-in MANA driver can initialize again.
 
 ```sh
 tar xzf mana-compat-installer-*.tar.gz   # if you no longer have the extracted tree
